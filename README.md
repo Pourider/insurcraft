@@ -81,6 +81,12 @@ msiexec /i "insurcraft-<ver>-windows-x64.msi" /qn /norestart INSTALLDESKTOPSHORT
 Los builds de InsurCraft **no están firmados** con certificado de código, así que Windows SmartScreen
 puede mostrar una advertencia la primera vez.
 
+## Web y versión en el navegador
+
+El workflow `.github/workflows/pages.yml` publica en GitHub Pages la landing (`docs/index.html`) y la app
+completa compilada a WebAssembly en `/app/`. Para activarlo: **Settings → Pages → Source: GitHub Actions**.
+Después, cada push a `main` la actualiza.
+
 ## Estructura del proyecto
 
 | Carpeta | Contenido |

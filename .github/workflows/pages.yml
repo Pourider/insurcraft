@@ -1,0 +1,72 @@
+# Publishes InsurCraft's website on GitHub Pages:
+#   https://<owner>.github.io/insurcraft/      landing page (docs/index.html)
+#   https://<owner>.github.io/insurcraft/app/  the full app running in the browser (WebAssembly)
+#
+# One-time setup in the repository: Settings → Pages → Build and deployment → Source: GitHub Actions.
+# Runs on every push to main that touches the app or the site, and on demand (Actions → Pages → Run workflow).
+name: Pages
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "apps/**"
+      - "crates/**"
+      - "docs/index.html"
+      - "Cargo.toml"
+      - "Cargo.lock"
+      - ".github/workflows/pages.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  build:
+    name: Build site
+    runs-on: ubuntu-latest
+    env:
+      TRUNK_VERSION: 0.21.14
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: wasm32-unknown-unknown
+      - uses: Swatinem/rust-cache@v2
+        with:
+          key: pages-web
+      - name: Install trunk
+        run: |
+          curl -fsSL "https://github.com/trunk-rs/trunk/releases/download/v${TRUNK_VERSION}/trunk-x86_64-unknown-linux-gnu.tar.gz" \
+            | tar -xz -C "$HOME/.cargo/bin" trunk
+          trunk --version
+      - name: Build the web app
+        working-directory: apps/insurcraft-web
+        run: trunk build --release
+      - name: Assemble the site
+        run: |
+          mkdir -p site/app
+          cp docs/index.html site/index.html
+          cp -R dist/web/. site/app/
+          touch site/.nojekyll
+          ls -la site site/app
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: site
+
+  deploy:
+    name: Deploy
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4
