@@ -11,7 +11,7 @@
 
 use std::collections::HashSet;
 
-use pdfcraft_cos::{Dict, Document, ObjRef, Object, PdfString};
+use insurcraft_cos::{Dict, Document, ObjRef, Object, PdfString};
 
 use crate::{OrganizeError, walk};
 
@@ -41,7 +41,7 @@ pub enum OutlineError {
     #[error("{0}")]
     Organize(#[from] OrganizeError),
     #[error("{0}")]
-    Cos(#[from] pdfcraft_cos::CosError),
+    Cos(#[from] insurcraft_cos::CosError),
 }
 
 type Result<T> = std::result::Result<T, OutlineError>;

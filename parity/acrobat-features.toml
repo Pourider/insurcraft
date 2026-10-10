@@ -1,4 +1,4 @@
-# PdfCraft parity checklist vs Acrobat Pro (offline feature set). Generated from plan docs; maintained by hand.
+# InsurCraft parity checklist vs Acrobat Pro (offline feature set). Generated from plan docs; maintained by hand.
 # Validated and reported by `cargo xtask parity`. Schema: see the [schema] table.
 # Status rules: `shipped` = usable today with at least one cited test; `partial` = part exists (notes say what is
 # missing); `planned` = not started; `na` = Adobe-cloud-only (notes name the local or pluggable alternative).
@@ -671,7 +671,7 @@ status = "shipped"
 commands = []
 tools = []
 evidence = ["crates/ui-egui/tests/editing.rs::the_last_session_reopens_its_files_pages_and_active_tab", "crates/ui-egui/tests/editing.rs::quitting_with_unsaved_changes_still_remembers_every_file", "crates/ui-egui/tests/editing.rs::the_last_session_is_off_by_default_and_skips_missing_and_duplicate_files", "crates/ui-egui/src/last_session.rs::malformed_sessions_are_skipped_and_capped"]
-notes = "Desktop, off by default (Preferences ▸ Documents and view, #442): the files open when PdfCraft last closed reopen at the page each showed, with the same tab in front; files named on the command line open after them, in front; files that are gone, and documents the Recovery dialog offers, are skipped. Quitting with unsaved changes still remembers every tab. Not yet: zoom, layout and scroll position within the page (#418); only the first encrypted file asks for its password (later ones stay closed), and a file opened after it dismisses that prompt; a save that fails partway through a quit can leave the remembered list from that quit; never-saved documents and the web build have no paths to reopen."
+notes = "Desktop, off by default (Preferences ▸ Documents and view, #442): the files open when InsurCraft last closed reopen at the page each showed, with the same tab in front; files named on the command line open after them, in front; files that are gone, and documents the Recovery dialog offers, are skipped. Quitting with unsaved changes still remembers every tab. Not yet: zoom, layout and scroll position within the page (#418); only the first encrypted file asks for its password (later ones stay closed), and a file opened after it dismisses that prompt; a save that fails partway through a quit can leave the remembered list from that quit; never-saved documents and the web build have no paths to reopen."
 
 [[feature]]
 id = "core.usage-rights-preserve"
@@ -927,7 +927,7 @@ status = "shipped"
 commands = []
 tools = []
 evidence = ["crates/ui-egui/tests/ui.rs::selection_works_in_every_view_rotation"]
-notes = "PdfCraft draws a percentage on its fixed 96-dpi basis: 96/72 logical pixels per PDF point at 100%. Acrobat draws it at its Page Display resolution, with logical pixels per PDF point = ppi / 72 × zoom (checked black-box with Custom resolutions of 96, 110 and 120 ppi on one display), so the same percentage can differ in size. Acrobat's Use System Setting resolution is not reproduced. Tracked with misc.prefs-page-display"
+notes = "InsurCraft draws a percentage on its fixed 96-dpi basis: 96/72 logical pixels per PDF point at 100%. Acrobat draws it at its Page Display resolution, with logical pixels per PDF point = ppi / 72 × zoom (checked black-box with Custom resolutions of 96, 110 and 120 ppi on one display), so the same percentage can differ in size. Acrobat's Use System Setting resolution is not reproduced. Tracked with misc.prefs-page-display"
 
 [[feature]]
 id = "view.zoom-actual-size"
@@ -939,7 +939,7 @@ status = "shipped"
 commands = []
 tools = []
 evidence = ["crates/ui-egui/tests/view.rs::actual_size_fit_width_and_fit_page"]
-notes = "Actual size is 100% on PdfCraft's fixed 96-dpi basis: 96/72 logical pixels per PDF point. Acrobat's Actual Size uses its Page Display resolution (ppi / 72 logical pixels per PDF point at 100%), which PdfCraft does not offer yet, so the two can draw a page at different sizes. Tracked with misc.prefs-page-display"
+notes = "Actual size is 100% on InsurCraft's fixed 96-dpi basis: 96/72 logical pixels per PDF point. Acrobat's Actual Size uses its Page Display resolution (ppi / 72 logical pixels per PDF point at 100%), which InsurCraft does not offer yet, so the two can draw a page at different sizes. Tracked with misc.prefs-page-display"
 
 [[feature]]
 id = "view.zoom-fit-page"
@@ -1706,7 +1706,7 @@ milestone = "M3"
 status = "partial"
 commands = ["help.check_updates"]
 tools = []
-evidence = ["crates/ui-egui/tests/updates.rs::a_newer_release_is_offered_for_download", "crates/ui-egui/tests/updates.rs::nothing_is_asked_until_the_user_checks", "apps/pdfcraft/src/updates.rs::answers_are_read_and_only_our_release_pages_are_offered"]
+evidence = ["crates/ui-egui/tests/updates.rs::a_newer_release_is_offered_for_download", "crates/ui-egui/tests/updates.rs::nothing_is_asked_until_the_user_checks", "apps/insurcraft/src/updates.rs::answers_are_read_and_only_our_release_pages_are_offered"]
 notes = "asks GitHub Releases on request and offers the release page. By the owner's decision there is no check at start and no in-place install (Acrobat has both)"
 
 [[feature]]
@@ -2335,7 +2335,7 @@ status = "shipped"
 commands = ["edit.header_footer.update", "edit.header_footer.remove"]
 tools = ["doc_header_footer", "doc_remove_marks"]
 evidence = ["crates/edit/src/tests.rs::replace_and_remove_restore_the_original_content", "crates/ui-egui/tests/marks.rs::header_and_footer_dialog_inserts_tokens_and_applies_to_a_subset"]
-notes = "recognises PdfCraft marks; Acrobat-made headers are not detected yet"
+notes = "recognises InsurCraft marks; Acrobat-made headers are not detected yet"
 
 [[feature]]
 id = "edit.header-footer-tokens"
@@ -3483,7 +3483,7 @@ status = "partial"
 commands = []
 tools = ["comment_add"]
 evidence = ["crates/annot/src/tests.rs::every_tool_creates_a_drawable_comment", "crates/engine/src/tests.rs::highlight_multiplies_over_text", "crates/annot/src/tests.rs::polygons_clouds_connected_lines_callouts_and_carets_are_drawn"]
-notes = "appearances for every type PdfCraft creates (highlight multiplies; clouds, callouts, stamps, polygons, carets); rich text not yet"
+notes = "appearances for every type InsurCraft creates (highlight multiplies; clouds, callouts, stamps, polygons, carets); rich text not yet"
 
 [[feature]]
 id = "comment.sticky-note"
@@ -3999,7 +3999,7 @@ status = "shipped"
 commands = ["comment.stamp"]
 tools = ["comment_add"]
 evidence = ["crates/annot/src/tests.rs::stamps_draw_their_label_and_by_line", "crates/ui-egui/tests/stamps.rs::choosing_and_placing_stamps", "crates/automation/tests/automation.rs::stamps_through_tools"]
-notes = "12 standard business stamps in PdfCraft's own design; ISO 32000 stamp names where defined"
+notes = "12 standard business stamps in InsurCraft's own design; ISO 32000 stamp names where defined"
 
 [[feature]]
 id = "comment.stamps-sign-here"
@@ -5203,7 +5203,7 @@ status = "shipped"
 commands = ["sign.fill.check", "sign.fill.cross", "sign.fill.dot", "sign.fill.line"]
 tools = ["fill_sign_add"]
 evidence = ["crates/ui-egui/tests/fill_sign.rs::text_marks_and_date", "crates/annot/src/tests.rs::fill_and_sign_items_are_drawn"]
-notes = "PdfCraft-drawn stamps"
+notes = "InsurCraft-drawn stamps"
 
 [[feature]]
 id = "form.fill-sign-date"
@@ -5835,7 +5835,7 @@ status = "shipped"
 commands = ["sign.digital", "sign.certify"]
 tools = ["sign_document"]
 evidence = ["crates/sign/tests/pdf.rs::encrypted_documents_are_signed_with_an_unencrypted_contents", "crates/sign/tests/pdf.rs::encrypted_documents_are_signed_only_as_their_permissions_allow", "crates/sign/tests/pdf.rs::encrypted_documents_take_a_document_timestamp", "crates/cos/tests/encryption.rs::signature_contents_stay_unencrypted", "crates/automation/tests/automation.rs::signing_an_encrypted_form_through_tools"]
-notes = "RC4-40/128, AES-128 and AES-256 Standard security; the incremental update keeps /Encrypt and /ID, encrypts the new strings and streams, and leaves the signature /Contents unencrypted (§7.6.2), which reading also honours. Opened with the user password, permissions (Table 22) apply: existing signature fields need fill-forms, new fields need annotate + modify, certifying needs modify, a document timestamp needs fill-forms; the owner may do anything. Not yet: certificate (public-key) security, which PdfCraft can't open; checked only against PdfCraft's own validator, not yet against an external one (pyHanko) or Acrobat"
+notes = "RC4-40/128, AES-128 and AES-256 Standard security; the incremental update keeps /Encrypt and /ID, encrypts the new strings and streams, and leaves the signature /Contents unencrypted (§7.6.2), which reading also honours. Opened with the user password, permissions (Table 22) apply: existing signature fields need fill-forms, new fields need annotate + modify, certifying needs modify, a document timestamp needs fill-forms; the owner may do anything. Not yet: certificate (public-key) security, which InsurCraft can't open; checked only against InsurCraft's own validator, not yet against an external one (pyHanko) or Acrobat"
 
 [[feature]]
 id = "sign.pkcs11"
@@ -5979,7 +5979,7 @@ status = "shipped"
 commands = ["sign.digital"]
 tools = ["sign_document"]
 evidence = ["crates/sign/tests/crypto.rs::signatures_round_trip_for_every_key_type", "crates/sign/tests/crypto.rs::rsa_signatures_are_read_with_every_digestinfo_variant", "crates/sign/tests/crypto.rs::ecdsa_signatures_are_read_as_der_non_minimal_der_or_raw", "crates/sign/tests/crypto.rs::verifies_ecdsa_on_p521_and_the_brainpool_curves", "crates/sign/tests/crypto.rs::keys_of_unknown_algorithms_are_unsupported_not_wrong", "crates/sign/tests/crypto.rs::tolerated_encodings_are_noted_and_standard_ones_are_not", "crates/sign/tests/crypto.rs::weak_digests_say_so_in_words_that_are_pinned", "crates/sign/tests/crypto.rs::an_rsa_signature_value_not_below_the_modulus_is_refused", "crates/sign/tests/crypto.rs::hostile_rsa_signature_values_are_wrong_not_crashes", "crates/sign/tests/algorithms.rs::rsa_with_sha3_sha512_256_and_ripemd160", "crates/sign/tests/algorithms.rs::rsa_pss_with_its_declared_parameters", "crates/sign/tests/algorithms.rs::ed25519_signs_the_signed_attributes_themselves", "crates/sign/tests/algorithms.rs::ecdsa_on_brainpool_p512r1", "crates/sign/tests/algorithms.rs::brainpool_p512r1_keys_must_have_coordinates_reduced_modulo_p", "crates/sign/tests/algorithms.rs::only_weak_digests_leave_a_note_when_a_signature_validates", "crates/sign/tests/pdf.rs::validates_the_legacy_adbe_x509_rsa_sha1_format"]
-notes = "SHA-256, SHA-384 for P-384; SHA-1 refused for new signatures, validated in old ones. Validation also reads SHA-224, SHA-512/224, SHA-512/256, SHA3-224/256/384/512, RIPEMD-160, RSA PKCS#1 with or without the DigestInfo NULL (a bare digest without any DigestInfo is refused), RSA-PSS with its declared MGF1 hash and salt length, ECDSA as DER/non-minimal DER/raw r||s on P-256, P-384, P-521 and brainpoolP256r1/P384r1/P512r1 (the last hand-written on crypto-bigint, checked against OpenSSL), Ed25519 (RFC 8419), and the legacy adbe.x509.rsa_sha1 format. An RSA value not below the modulus is refused (RFC 8017 5.2.2). SHA-1 and RIPEMD-160 validate but the signature details say the algorithm is weak (wording pinned by tests); tolerated encodings are listed in the details. An algorithm PdfCraft cannot check gives Unknown, not Invalid. Still missing: Ed448/SHAKE, DSA, brainpool curves other than P256/P384/P512, signing with the new digests"
+notes = "SHA-256, SHA-384 for P-384; SHA-1 refused for new signatures, validated in old ones. Validation also reads SHA-224, SHA-512/224, SHA-512/256, SHA3-224/256/384/512, RIPEMD-160, RSA PKCS#1 with or without the DigestInfo NULL (a bare digest without any DigestInfo is refused), RSA-PSS with its declared MGF1 hash and salt length, ECDSA as DER/non-minimal DER/raw r||s on P-256, P-384, P-521 and brainpoolP256r1/P384r1/P512r1 (the last hand-written on crypto-bigint, checked against OpenSSL), Ed25519 (RFC 8419), and the legacy adbe.x509.rsa_sha1 format. An RSA value not below the modulus is refused (RFC 8017 5.2.2). SHA-1 and RIPEMD-160 validate but the signature details say the algorithm is weak (wording pinned by tests); tolerated encodings are listed in the details. An algorithm InsurCraft cannot check gives Unknown, not Invalid. Still missing: Ed448/SHAKE, DSA, brainpool curves other than P256/P384/P512, signing with the new digests"
 
 [[feature]]
 id = "sign.certify"
@@ -9314,7 +9314,7 @@ milestone = "M13"
 status = "shipped"
 commands = []
 tools = []
-evidence = ["crates/automation/tests/automation.rs::tool_table_is_well_formed", "crates/automation/tests/automation.rs::edit_undo_redo_and_save_round_trip", "apps/pdfcraft-cli/tests/stdout.rs::output_commands_exit_cleanly_when_the_reader_has_closed"]
+evidence = ["crates/automation/tests/automation.rs::tool_table_is_well_formed", "crates/automation/tests/automation.rs::edit_undo_redo_and_save_round_trip", "apps/insurcraft-cli/tests/stdout.rs::output_commands_exit_cleanly_when_the_reader_has_closed"]
 notes = "CLI stdout exits cleanly if a pipe reader closes early; other output errors and command failures remain errors."
 
 [[feature]]
@@ -9374,7 +9374,7 @@ milestone = "M13"
 status = "shipped"
 commands = []
 tools = []
-evidence = ["crates/automation/tests/automation.rs::errors_are_specific_and_safe", "crates/automation/tests/automation.rs::root_refusals_do_not_reveal_what_exists_outside", "apps/pdfcraft-cli/tests/run_root.rs::script_image_output_is_confined_to_the_root", "crates/automation/tests/automation.rs::file_names_from_documents_stay_in_the_output_folder"]
+evidence = ["crates/automation/tests/automation.rs::errors_are_specific_and_safe", "crates/automation/tests/automation.rs::root_refusals_do_not_reveal_what_exists_outside", "apps/insurcraft-cli/tests/run_root.rs::script_image_output_is_confined_to_the_root", "crates/automation/tests/automation.rs::file_names_from_documents_stay_in_the_output_folder"]
 notes = "One refusal for every path outside the root, existing or not (#136). `run --script` images (`out`) are confined too (#137). Check-then-write, not openat-style: a process racing the tool on the same disk could swap a folder for a link between the check and the write."
 
 [[feature]]
@@ -9387,7 +9387,7 @@ status = "shipped"
 commands = []
 tools = ["doc_info", "text_extract", "page_render"]
 evidence = ["crates/automation/tests/automation.rs::mcp_resources_expose_open_documents", "crates/automation/src/mcp.rs::resource_uris_parse", "crates/automation/tests/automation.rs::conventions_resources"]
-notes = "resources/list, resources/templates/list and resources/read: pdfcraft://doc/{doc}/info (JSON), /text, /page/{page}/text, /page/{page}/image?dpi= (PNG)"
+notes = "resources/list, resources/templates/list and resources/read: insurcraft://doc/{doc}/info (JSON), /text, /page/{page}/text, /page/{page}/image?dpi= (PNG)"
 
 [[feature]]
 id = "misc.ui-control-channel"

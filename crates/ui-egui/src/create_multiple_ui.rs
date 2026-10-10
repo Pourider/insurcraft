@@ -4,17 +4,17 @@
 
 use std::sync::Arc;
 
-use crate::PdfCraftApp;
+use crate::InsurCraftApp;
 
 fn stem(name: &str) -> &str {
     name.rsplit_once('.').map_or(name, |(s, _)| s)
 }
 
-impl PdfCraftApp {
+impl InsurCraftApp {
     /// Convert the picked files, join them in the order picked, and open the result in the page
     /// grid. A file that can't be converted is left out (and named in a notice).
     pub(crate) fn stage_create_multiple(&mut self, files: Vec<(String, Vec<u8>)>) {
-        let max = pdfcraft_engine::MAX_CREATE_FILES;
+        let max = insurcraft_engine::MAX_CREATE_FILES;
         let too_many = files.len() > max;
         let (mut sources, mut refused) = (Vec::new(), Vec::new());
         for (name, bytes) in files.into_iter().take(max) {

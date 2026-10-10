@@ -1,0 +1,14 @@
+[Desktop Entry]
+Type=Application
+Name=InsurCraft
+GenericName=PDF Editor
+Comment=Read, organize, combine, split and secure PDFs
+Exec=insurcraft %U
+TryExec=insurcraft
+Icon=pe.insur.insurcraft
+Terminal=false
+StartupNotify=true
+StartupWMClass=insurcraft
+Categories=Office;Viewer;
+Keywords=pdf;viewer;editor;annotate;sign;forms;merge;split;
+MimeType=application/pdf;

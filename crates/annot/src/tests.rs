@@ -1,6 +1,6 @@
 use std::sync::Arc;
 
-use pdfcraft_cos::{Document, ObjRef, Object, SaveOptions, write_incremental};
+use insurcraft_cos::{Document, ObjRef, Object, SaveOptions, write_incremental};
 
 use super::*;
 
@@ -142,7 +142,7 @@ fn every_tool_creates_a_drawable_comment() {
 }
 
 /// #260 (page 7): Acrobat draws an Ink annotation as a smooth curve through its `/InkList`
-/// points, where PdfCraft drew straight segments between them. Three or more points now make a
+/// points, where InsurCraft drew straight segments between them. Three or more points now make a
 /// Catmull-Rom spline through every point (as cubic Béziers); two points stay a line, one a dot.
 #[test]
 fn ink_strokes_are_smooth_curves_through_their_points() {
@@ -777,8 +777,8 @@ fn comments_without_appearances_get_one_for_display_only() {
     assert!(with_missing_appearances(&complete).is_none());
 }
 
-fn line_dict(coords: [f64; 4], ending: &str) -> pdfcraft_cos::Dict {
-    let mut d = pdfcraft_cos::Dict::new();
+fn line_dict(coords: [f64; 4], ending: &str) -> insurcraft_cos::Dict {
+    let mut d = insurcraft_cos::Dict::new();
     d.set(b"Subtype".to_vec(), Object::name("Line"));
     d.set(b"Rect".to_vec(), Object::Array([0.0, 0.0, 300.0, 300.0].into_iter().map(Object::Real).collect()));
     d.set(b"C".to_vec(), Object::Array([1.0, 0.0, 0.0].into_iter().map(Object::Real).collect()));
@@ -789,7 +789,7 @@ fn line_dict(coords: [f64; 4], ending: &str) -> pdfcraft_cos::Dict {
 
 #[test]
 fn malformed_optional_interior_color_does_not_hide_shape_strokes() {
-    let mut square = pdfcraft_cos::Dict::new();
+    let mut square = insurcraft_cos::Dict::new();
     square.set(b"Subtype".to_vec(), Object::name("Square"));
     square.set(b"Rect".to_vec(), Object::Array([0.0, 0.0, 40.0, 30.0].into_iter().map(Object::Real).collect()));
     square.set(b"C".to_vec(), Object::Array([1.0, 0.0, 0.0].into_iter().map(Object::Real).collect()));
@@ -798,7 +798,7 @@ fn malformed_optional_interior_color_does_not_hide_shape_strokes() {
     let mut circle = square.clone();
     circle.set(b"Subtype".to_vec(), Object::name("Circle"));
 
-    let mut polygon = pdfcraft_cos::Dict::new();
+    let mut polygon = insurcraft_cos::Dict::new();
     polygon.set(b"Subtype".to_vec(), Object::name("Polygon"));
     polygon.set(b"Rect".to_vec(), Object::Array([0.0, 0.0, 40.0, 30.0].into_iter().map(Object::Real).collect()));
     polygon.set(b"C".to_vec(), Object::Array([1.0, 0.0, 0.0].into_iter().map(Object::Real).collect()));
@@ -807,7 +807,7 @@ fn malformed_optional_interior_color_does_not_hide_shape_strokes() {
 
     let mut line = line_dict([0.0, 0.0, 40.0, 30.0], "None");
     line.set(b"IC".to_vec(), malformed.clone());
-    let mut polyline = pdfcraft_cos::Dict::new();
+    let mut polyline = insurcraft_cos::Dict::new();
     polyline.set(b"Subtype".to_vec(), Object::name("PolyLine"));
     polyline.set(b"Rect".to_vec(), Object::Array([0.0, 0.0, 40.0, 30.0].into_iter().map(Object::Real).collect()));
     polyline.set(b"C".to_vec(), Object::Array([1.0, 0.0, 0.0].into_iter().map(Object::Real).collect()));
@@ -927,7 +927,7 @@ fn redraw_keeps_shared_annotation_appearances_and_drops_stale_alternates() {
             d.set(b"Type".to_vec(), Object::name("XObject"));
             d.set(b"Subtype".to_vec(), Object::name("Form"));
             d.set(b"BBox".to_vec(), num_array(&[0.0, 0.0, 20.0, 10.0]));
-            let r = doc.add(Object::Stream(pdfcraft_cos::Stream::from_raw(d, bytes.to_vec())));
+            let r = doc.add(Object::Stream(insurcraft_cos::Stream::from_raw(d, bytes.to_vec())));
             entries.set(key.to_vec(), Object::Ref(r));
         }
         entries.set(b"VendorState".to_vec(), Object::name("Retained"));
@@ -943,7 +943,7 @@ fn redraw_keeps_shared_annotation_appearances_and_drops_stale_alternates() {
         assert_eq!(doc.resolve(source), before, "a shared AP must not change");
         for full in [false, true] {
             let bytes = if full {
-                pdfcraft_cos::write_full(&doc, &SaveOptions::default()).unwrap()
+                insurcraft_cos::write_full(&doc, &SaveOptions::default()).unwrap()
             } else {
                 assert!(!doc.revisions().is_empty(), "incremental save needs an existing revision");
                 assert!(!doc.encryption_changed() && !doc.full_save_required(), "this edit must not require a full rewrite");

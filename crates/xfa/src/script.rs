@@ -4,7 +4,7 @@
 
 use std::collections::{BTreeMap, HashMap};
 
-use pdfcraft_cos::{Dict, Document, Object, PdfString};
+use insurcraft_cos::{Dict, Document, Object, PdfString};
 
 use crate::data::{DataNode, parse_datasets, som_to_path};
 use crate::model::*;
@@ -101,7 +101,7 @@ fn access_name(a: Access) -> &'static str {
     }
 }
 
-fn acroform(doc: &Document) -> Option<(Option<pdfcraft_cos::ObjRef>, Dict)> {
+fn acroform(doc: &Document) -> Option<(Option<insurcraft_cos::ObjRef>, Dict)> {
     let root = doc.root()?;
     let catalog = doc.get(root);
     let o = catalog.as_dict()?.get(b"AcroForm")?.clone();
@@ -508,7 +508,7 @@ pub fn apply_overrides(tpl: &Template, ov: &Overrides) -> Template {
 
 /// The generated fields of the AcroForm by SOM path: `som → (field name, is a radio group)`.
 pub fn fields_by_som(doc: &Document) -> HashMap<String, String> {
-    fn walk(doc: &Document, r: pdfcraft_cos::ObjRef, prefix: &str, out: &mut HashMap<String, String>, depth: usize) {
+    fn walk(doc: &Document, r: insurcraft_cos::ObjRef, prefix: &str, out: &mut HashMap<String, String>, depth: usize) {
         if depth > MAX_DEPTH || out.len() > 100_000 {
             return;
         }
@@ -551,7 +551,7 @@ pub fn rerender(doc: &mut Document, tpl: &Template) -> Result<Report, XfaError> 
     if form.pages.is_empty() {
         return Err(XfaError::Malformed("the template laid out to no pages".into()));
     }
-    // The AcroForm keeps only the fields PdfCraft did not generate.
+    // The AcroForm keeps only the fields InsurCraft did not generate.
     let Some(root) = doc.root() else { return Err(XfaError::NotXfa) };
     if let Some((acro_ref, mut acro)) = acroform(doc) {
         let fields = acro.get(b"Fields").map(|f| doc.resolve(f)).and_then(|f| f.as_array().cloned()).unwrap_or_default();

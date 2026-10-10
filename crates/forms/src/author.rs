@@ -5,8 +5,8 @@
 //! check boxes), a thin grey border and a white background, and appearance streams generated
 //! immediately so every viewer shows the empty field.
 
-use pdfcraft_cos::{Dict, Document, ObjRef, Object, PdfString, Stream};
-use pdfcraft_fonts::{helvetica_width, literal, win_ansi};
+use insurcraft_cos::{Dict, Document, ObjRef, Object, PdfString, Stream};
+use insurcraft_fonts::{helvetica_width, literal, win_ansi};
 
 use crate::{Field, FieldKind, FormError, Widget, appearance, fields, flags, page_refs};
 
@@ -348,7 +348,7 @@ impl FieldFont {
 }
 
 /// The mark a check box or radio button shows when on (Field Properties ▸ Options ▸ style).
-/// Stored as `/MK /CA`, the ZapfDingbats character Acrobat uses for it; PdfCraft draws the
+/// Stored as `/MK /CA`, the ZapfDingbats character Acrobat uses for it; InsurCraft draws the
 /// mark as paths, so no symbol font is needed.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum CheckStyle {

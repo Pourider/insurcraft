@@ -5,8 +5,8 @@ use egui::accesskit::Role;
 use egui::{Key, Modifiers};
 use egui_kittest::Harness;
 use egui_kittest::kittest::{NodeT, Queryable};
-use pdfcraft_render::{PageRenderer, RenderRequest, RequestKind};
-use pdfcraft_ui_egui::{CloseRequest, PdfCraftApp};
+use insurcraft_render::{PageRenderer, RenderRequest, RequestKind};
+use insurcraft_ui_egui::{CloseRequest, InsurCraftApp};
 
 /// An `n`-page document with a proper xref table; page `i` shows "Page i+1".
 fn fixture(n: usize) -> Vec<u8> {
@@ -34,9 +34,9 @@ fn fixture(n: usize) -> Vec<u8> {
     out
 }
 
-fn harness(pages: usize, setup: impl FnOnce(&mut PdfCraftApp) + 'static) -> Harness<'static, PdfCraftApp> {
+fn harness(pages: usize, setup: impl FnOnce(&mut InsurCraftApp) + 'static) -> Harness<'static, InsurCraftApp> {
     let mut h = Harness::builder().with_size(egui::vec2(1400.0, 900.0)).build_eframe(move |_cc| {
-        let mut app = PdfCraftApp::new();
+        let mut app = InsurCraftApp::new();
         app.set_option("language", "en").unwrap();
         app.open_bytes("doc.pdf", None, fixture(pages)).expect("fixture opens");
         setup(&mut app);
@@ -46,12 +46,12 @@ fn harness(pages: usize, setup: impl FnOnce(&mut PdfCraftApp) + 'static) -> Harn
     h
 }
 
-fn organize(pages: usize) -> Harness<'static, PdfCraftApp> {
+fn organize(pages: usize) -> Harness<'static, InsurCraftApp> {
     harness(pages, |app| app.set_option("organize", "on").unwrap())
 }
 
 /// Page labels of the active document, read back from its current bytes.
-fn page_texts(app: &PdfCraftApp) -> Vec<String> {
+fn page_texts(app: &InsurCraftApp) -> Vec<String> {
     let doc = app.session.get(app.views[0].id).unwrap();
     let mut r = PageRenderer::new(doc.bytes.clone(), Default::default());
     (0..r.page_count())
@@ -62,13 +62,13 @@ fn page_texts(app: &PdfCraftApp) -> Vec<String> {
         .collect()
 }
 
-fn dirty(h: &Harness<'static, PdfCraftApp>) -> bool {
+fn dirty(h: &Harness<'static, InsurCraftApp>) -> bool {
     let app = h.state();
     app.session.get(app.views[0].id).is_some_and(|d| d.dirty)
 }
 
 fn temp_path(name: &str) -> std::path::PathBuf {
-    let dir = std::env::temp_dir().join(format!("pdfcraft-ui-tests-{}", std::process::id()));
+    let dir = std::env::temp_dir().join(format!("insurcraft-ui-tests-{}", std::process::id()));
     std::fs::create_dir_all(&dir).unwrap();
     dir.join(name)
 }
@@ -175,9 +175,9 @@ fn organize_select_all_applies_operations_to_every_page() {
 #[test]
 fn organize_select_all_works_without_page_editing_permission() {
     let mut h = harness(3, |app| {
-        app.apply_edit(pdfcraft_engine::Edit::Protect(pdfcraft_engine::Protection {
+        app.apply_edit(insurcraft_engine::Edit::Protect(insurcraft_engine::Protection {
             permissions_password: Some("owner".into()),
-            changes: pdfcraft_engine::Changes::None,
+            changes: insurcraft_engine::Changes::None,
             ..Default::default()
         }));
         let bytes = app.session.save_bytes(app.views[0].id).unwrap();
@@ -198,7 +198,7 @@ fn organize_select_all_works_without_page_editing_permission() {
     assert_eq!(h.state().views[0].selected.len(), 1);
 
     // The opener refuses zero-page PDFs, but the view method also handles empty geometry.
-    let mut empty = pdfcraft_ui_egui::canvas::DocView::new(pdfcraft_engine::DocId(0), &Default::default(), Default::default());
+    let mut empty = insurcraft_ui_egui::canvas::DocView::new(insurcraft_engine::DocId(0), &Default::default(), Default::default());
     empty.organize = true;
     assert!(!empty.select_all());
     assert!(empty.selected.is_empty());
@@ -275,7 +275,7 @@ fn save_writes_an_incremental_update_and_clears_dirty() {
     h.get_by_label("saved.pdf"); // the tab takes the new name, no edited marker
     // What was written is what the app now shows.
     assert_eq!(h.state().session.get(h.state().views[0].id).unwrap().bytes.as_slice(), saved.as_slice());
-    let reopened = pdfcraft_render::inspect(std::sync::Arc::new(saved), None).unwrap();
+    let reopened = insurcraft_render::inspect(std::sync::Arc::new(saved), None).unwrap();
     assert_eq!(reopened.pages[2].rotation, 270);
     let _ = std::fs::remove_file(out);
 }
@@ -313,7 +313,7 @@ fn closing_a_dirty_tab_can_save_first() {
     h.get_by_label("Save").click();
     h.run_steps(3);
     assert!(h.state().views.is_empty());
-    let saved = pdfcraft_render::inspect(std::sync::Arc::new(std::fs::read(&out).unwrap()), None).unwrap();
+    let saved = insurcraft_render::inspect(std::sync::Arc::new(std::fs::read(&out).unwrap()), None).unwrap();
     assert_eq!(saved.pages[0].rotation, 90);
     let _ = std::fs::remove_file(out);
 }
@@ -351,7 +351,7 @@ fn the_save_prompt_answers_to_the_keyboard() {
     h.key_press(Key::Enter);
     h.run_steps(3);
     assert!(h.state().views.is_empty(), "Enter saves and closes");
-    let saved = pdfcraft_render::inspect(std::sync::Arc::new(std::fs::read(&out).unwrap()), None).unwrap();
+    let saved = insurcraft_render::inspect(std::sync::Arc::new(std::fs::read(&out).unwrap()), None).unwrap();
     assert_eq!(saved.pages[0].rotation, 90);
     let _ = std::fs::remove_file(out);
 }
@@ -374,7 +374,7 @@ fn quitting_with_unsaved_changes_asks_for_each_document() {
     for tab in 0..2 {
         h.state_mut().active = Some(tab);
         h.state_mut().views[tab].select_pages(&[0]);
-        h.state_mut().apply_edit(pdfcraft_engine::Edit::RotatePages { pages: vec![0], degrees: 90 });
+        h.state_mut().apply_edit(insurcraft_engine::Edit::RotatePages { pages: vec![0], degrees: 90 });
     }
     h.state_mut().close_request = Some(CloseRequest::Quit);
     h.run_steps(3);
@@ -393,7 +393,7 @@ struct TempPdfs(std::path::PathBuf);
 
 impl TempPdfs {
     fn new(test: &str) -> Self {
-        let dir = std::env::temp_dir().join(format!("pdfcraft-session-{test}-{}", std::process::id()));
+        let dir = std::env::temp_dir().join(format!("insurcraft-session-{test}-{}", std::process::id()));
         let _ = std::fs::remove_dir_all(&dir);
         std::fs::create_dir_all(&dir).unwrap();
         Self(dir)
@@ -412,10 +412,10 @@ impl Drop for TempPdfs {
     }
 }
 
-/// The app with Preferences ▸ Reopen the files that were open when PdfCraft last closed on.
-fn session_harness(setup: impl FnOnce(&mut PdfCraftApp) + 'static) -> Harness<'static, PdfCraftApp> {
+/// The app with Preferences ▸ Reopen the files that were open when InsurCraft last closed on.
+fn session_harness(setup: impl FnOnce(&mut InsurCraftApp) + 'static) -> Harness<'static, InsurCraftApp> {
     let mut h = Harness::builder().with_size(egui::vec2(1400.0, 900.0)).build_eframe(move |_cc| {
-        let mut app = PdfCraftApp::new();
+        let mut app = InsurCraftApp::new();
         app.set_option("language", "en").unwrap();
         app.reopen_last_session = true;
         setup(&mut app);
@@ -425,7 +425,7 @@ fn session_harness(setup: impl FnOnce(&mut PdfCraftApp) + 'static) -> Harness<'s
     h
 }
 
-fn open_paths(app: &PdfCraftApp) -> Vec<String> {
+fn open_paths(app: &InsurCraftApp) -> Vec<String> {
     app.views.iter().map(|v| app.session.get(v.id).and_then(|d| d.path.clone()).unwrap_or_default()).collect()
 }
 
@@ -460,18 +460,18 @@ fn quitting_with_unsaved_changes_still_remembers_every_file() {
     for tab in 0..2 {
         h.state_mut().active = Some(tab);
         h.state_mut().views[tab].select_pages(&[0]);
-        h.state_mut().apply_edit(pdfcraft_engine::Edit::RotatePages { pages: vec![0], degrees: 90 });
+        h.state_mut().apply_edit(insurcraft_engine::Edit::RotatePages { pages: vec![0], degrees: 90 });
     }
     h.state_mut().active = Some(1);
     h.state_mut().close_request = Some(CloseRequest::Quit);
     h.run_steps(3);
-    // Each unsaved tab closes as it is answered, before PdfCraft quits.
+    // Each unsaved tab closes as it is answered, before InsurCraft quits.
     for _ in 0..2 {
         h.get_by_label("Don't save").click();
         h.run_steps(3);
     }
     assert!(h.state().views.is_empty());
-    let mut app = PdfCraftApp::new();
+    let mut app = InsurCraftApp::new();
     app.restore(&h.state().persist());
     app.reopen_last_files(&[]);
     assert_eq!(open_paths(&app), files, "both files come back");
@@ -482,21 +482,21 @@ fn quitting_with_unsaved_changes_still_remembers_every_file() {
 fn the_last_session_is_off_by_default_and_skips_missing_and_duplicate_files() {
     let dir = TempPdfs::new("skip");
     let (a, b) = (dir.file("a.pdf", 1), dir.file("b.pdf", 1));
-    let mut app = PdfCraftApp::new();
+    let mut app = InsurCraftApp::new();
     app.open_path(&a);
     app.open_path(&b);
     let off: serde_json::Value = serde_json::from_str(&app.persist()).unwrap();
     assert!(off["last_session"].is_null(), "nothing is kept while the preference is off");
     app.reopen_last_session = true;
     let settings = app.persist();
-    let mut later = PdfCraftApp::new();
+    let mut later = InsurCraftApp::new();
     later.restore(&settings);
     later.reopen_last_session = false;
     later.reopen_last_files(&[]);
     assert!(later.views.is_empty(), "turned off again: nothing reopens");
     // b.pdf is gone, and a.pdf is about to open from the command line.
     std::fs::remove_file(&b).unwrap();
-    let mut later = PdfCraftApp::new();
+    let mut later = InsurCraftApp::new();
     later.restore(&settings);
     later.reopen_last_files(&[a]);
     assert!(later.views.is_empty(), "neither opens from the session");
@@ -509,7 +509,7 @@ fn save_prompt_stays_inside_the_screen_for_a_long_filename() {
     let name = "Psychology_ The Science of Mind and Behaviour, -- Nigel Holt, Andy Bremner, Michael \
                 Vliek, Ed Sutherland, -- 5, 2024 -- McGraw-Hill Education (UK) Ltd -- isbn13 97815268.pdf";
     let mut h = Harness::builder().with_size(egui::vec2(1365.0, 719.0)).build_eframe(move |_cc| {
-        let mut app = PdfCraftApp::new();
+        let mut app = InsurCraftApp::new();
         app.set_option("language", "en").unwrap();
         app.open_bytes(name, None, fixture(1)).expect("fixture opens");
         app.close_request = Some(CloseRequest::Tab(app.views[0].id));
@@ -539,12 +539,12 @@ fn save_prompt_fits_the_smallest_window_whatever_the_name() {
         format!("{}.pdf", "年".repeat(251)),
         format!("{}.pdf", "W".repeat(2000)),
     ];
-    // The desktop window's minimum inner size (apps/pdfcraft/src/main.rs).
+    // The desktop window's minimum inner size (apps/insurcraft/src/main.rs).
     let size = egui::vec2(820.0, 520.0);
     for name in names {
         let start: String = name.chars().take(10).collect();
         let mut h = Harness::builder().with_size(size).build_eframe(move |_cc| {
-            let mut app = PdfCraftApp::new();
+            let mut app = InsurCraftApp::new();
             app.set_option("language", "en").unwrap();
             app.open_bytes(&name, None, fixture(1)).expect("fixture opens");
             app.close_request = Some(CloseRequest::Tab(app.views[0].id));
@@ -612,7 +612,7 @@ fn cancelling_properties_discards_the_draft() {
 #[test]
 fn edit_menu_names_the_step_to_undo() {
     let mut h = harness(2, |app| {
-        app.apply_edit(pdfcraft_engine::Edit::RotatePages { pages: vec![0], degrees: 90 });
+        app.apply_edit(insurcraft_engine::Edit::RotatePages { pages: vec![0], degrees: 90 });
     });
     h.get_by_label("Menu").click();
     h.run_steps(2);
@@ -628,7 +628,7 @@ fn edit_menu_names_the_step_to_undo() {
 
 // ── Combine / insert from file / extract / split ──────────────────────────────────────────────
 
-fn texts_of(app: &PdfCraftApp, tab: usize) -> Vec<String> {
+fn texts_of(app: &InsurCraftApp, tab: usize) -> Vec<String> {
     let doc = app.session.get(app.views[tab].id).unwrap();
     let mut r = PageRenderer::new(doc.bytes.clone(), Default::default());
     (0..r.page_count())
@@ -642,7 +642,7 @@ fn texts_of(app: &PdfCraftApp, tab: usize) -> Vec<String> {
 #[test]
 fn combining_files_opens_a_new_unsaved_tab() {
     let mut h = harness(1, |app| {
-        app.use_files(pdfcraft_ui_egui::FilePurpose::Combine, vec![("one.pdf".into(), fixture(2)), ("two.pdf".into(), fixture(1))]);
+        app.use_files(insurcraft_ui_egui::FilePurpose::Combine, vec![("one.pdf".into(), fixture(2)), ("two.pdf".into(), fixture(1))]);
     });
     h.run_steps(3);
     h.get_by_label("Combine").click();
@@ -661,7 +661,7 @@ fn combining_files_opens_a_new_unsaved_tab() {
 #[test]
 fn combine_files_takes_chosen_pages_in_the_order_listed() {
     let mut h = harness(1, |app| {
-        app.use_files(pdfcraft_ui_egui::FilePurpose::Combine, vec![("one.pdf".into(), fixture(3)), ("two.pdf".into(), fixture(2))]);
+        app.use_files(insurcraft_ui_egui::FilePurpose::Combine, vec![("one.pdf".into(), fixture(3)), ("two.pdf".into(), fixture(2))]);
     });
     h.run_steps(3);
     h.get_by_label_contains("Files are combined from top to bottom");
@@ -713,7 +713,7 @@ fn combine_files_opens_in_its_own_tab() {
 #[test]
 fn closing_the_combine_tab_forgets_its_list() {
     let mut h = harness(1, |app| {
-        app.use_files(pdfcraft_ui_egui::FilePurpose::Combine, vec![("one.pdf".into(), fixture(1))]);
+        app.use_files(insurcraft_ui_egui::FilePurpose::Combine, vec![("one.pdf".into(), fixture(1))]);
     });
     h.run_steps(3);
     assert!(h.state().combine_showing());
@@ -728,7 +728,7 @@ fn closing_the_combine_tab_forgets_its_list() {
 fn combine_lists_size_and_warns_before_combining() {
     let mut h = harness(1, |app| {
         app.use_files(
-            pdfcraft_ui_egui::FilePurpose::Combine,
+            insurcraft_ui_egui::FilePurpose::Combine,
             vec![
                 ("one.pdf".into(), fixture(3)),
                 ("locked.pdf".into(), protected("", "owner", -1 ^ 1024 ^ 8)),
@@ -756,7 +756,7 @@ fn combine_lists_size_and_warns_before_combining() {
 #[test]
 fn a_bad_range_stops_combine_until_fixed() {
     let mut h = harness(1, |app| {
-        app.use_files(pdfcraft_ui_egui::FilePurpose::Combine, vec![("one.pdf".into(), fixture(3)), ("two.pdf".into(), fixture(2))]);
+        app.use_files(insurcraft_ui_egui::FilePurpose::Combine, vec![("one.pdf".into(), fixture(3)), ("two.pdf".into(), fixture(2))]);
     });
     h.run_steps(3);
     h.get_by_label_contains("2 files · 5 pages");
@@ -774,7 +774,7 @@ fn a_bad_range_stops_combine_until_fixed() {
 fn alt_arrows_move_the_selected_file() {
     let mut h = harness(1, |app| {
         app.use_files(
-            pdfcraft_ui_egui::FilePurpose::Combine,
+            insurcraft_ui_egui::FilePurpose::Combine,
             vec![("a.pdf".into(), fixture(1)), ("b.pdf".into(), fixture(1)), ("c.pdf".into(), fixture(1))],
         );
     });
@@ -788,13 +788,13 @@ fn alt_arrows_move_the_selected_file() {
     assert_eq!(h.state().combine_selection(), [1]);
 }
 
-fn combine_names(h: &Harness<'static, PdfCraftApp>) -> Vec<String> {
+fn combine_names(h: &Harness<'static, InsurCraftApp>) -> Vec<String> {
     h.state().combine_draft.iter().map(|f| f.name.clone()).collect()
 }
 
-fn combine_of(names: &[(&str, usize)]) -> Harness<'static, PdfCraftApp> {
+fn combine_of(names: &[(&str, usize)]) -> Harness<'static, InsurCraftApp> {
     let files: Vec<(String, Vec<u8>)> = names.iter().map(|(n, p)| (n.to_string(), fixture(*p))).collect();
-    let mut h = harness(1, move |app| app.use_files(pdfcraft_ui_egui::FilePurpose::Combine, files));
+    let mut h = harness(1, move |app| app.use_files(insurcraft_ui_egui::FilePurpose::Combine, files));
     h.run_steps(3);
     h
 }
@@ -888,7 +888,7 @@ fn undo_and_redo_restore_the_combine_list() {
 fn protected_files_that_can_be_combined_are_flagged() {
     let mut h = harness(1, |app| {
         app.use_files(
-            pdfcraft_ui_egui::FilePurpose::Combine,
+            insurcraft_ui_egui::FilePurpose::Combine,
             vec![("one.pdf".into(), fixture(1)), ("no-copy.pdf".into(), protected("", "owner", -1 ^ 16))],
         );
     });
@@ -916,7 +916,7 @@ fn the_whole_heading_sorts_and_dragging_it_moves_the_column() {
     let size = h.get_by_label("Size").rect().center();
     let name = h.get_by_label("File name, sorted ascending").rect();
     drag(&mut h, size, egui::pos2(name.left() + 10.0, name.center().y));
-    use pdfcraft_ui_egui::SortKey::*;
+    use insurcraft_ui_egui::SortKey::*;
     assert_eq!(h.state().combine_columns.order, [Size, Name, Pages, Modified, Warnings]);
     assert_eq!(combine_names(&h), ["a.pdf", "b.pdf"], "moving a column doesn't sort");
     let (size, name) = (h.get_by_label("Size").rect(), h.get_by_label("File name, sorted ascending").rect());
@@ -931,10 +931,10 @@ fn columns_resize_and_the_layout_is_kept_in_the_settings() {
     let edge = egui::pos2(size.right() + 2.0, size.center().y);
     drag(&mut h, edge, edge + egui::vec2(60.0, 0.0));
     let widths = h.state().combine_columns.widths.expect("a resized column keeps its width");
-    let size_index = pdfcraft_ui_egui::SortKey::Size as usize;
+    let size_index = insurcraft_ui_egui::SortKey::Size as usize;
     assert!(widths[size_index] > 120.0, "{widths:?}");
     let saved = h.state().persist();
-    let mut fresh = PdfCraftApp::new();
+    let mut fresh = InsurCraftApp::new();
     fresh.set_option("language", "en").unwrap();
     fresh.restore(&saved);
     assert_eq!(fresh.combine_columns, h.state().combine_columns);
@@ -945,7 +945,7 @@ fn columns_resize_and_the_layout_is_kept_in_the_settings() {
 
 #[test]
 fn a_folder_adds_its_pdfs_in_order_and_optionally_its_subfolders() {
-    let dir = std::env::temp_dir().join(format!("pdfcraft-combine-folder-{}", std::process::id()));
+    let dir = std::env::temp_dir().join(format!("insurcraft-combine-folder-{}", std::process::id()));
     let _ = std::fs::remove_dir_all(&dir);
     std::fs::create_dir_all(dir.join("sub")).unwrap();
     for (name, pages) in [("page10.pdf", 1), ("page2.PDF", 2), ("sub/inner.pdf", 3)] {
@@ -971,7 +971,7 @@ fn a_folder_adds_its_pdfs_in_order_and_optionally_its_subfolders() {
     let _ = std::fs::remove_dir_all(&dir);
 }
 
-fn type_password(h: &mut Harness<'static, PdfCraftApp>, password: &str) {
+fn type_password(h: &mut Harness<'static, InsurCraftApp>, password: &str) {
     let field = h.get_by_role(Role::PasswordInput);
     field.focus();
     field.type_text(password);
@@ -983,7 +983,7 @@ fn type_password(h: &mut Harness<'static, PdfCraftApp>, password: &str) {
 #[test]
 fn a_password_protected_file_is_unlocked_with_its_password_and_combined() {
     let mut h = combine_of(&[("one.pdf", 1)]);
-    h.state_mut().use_files(pdfcraft_ui_egui::FilePurpose::Combine, vec![("secret.pdf".into(), protected("pw", "owner", -1))]);
+    h.state_mut().use_files(insurcraft_ui_egui::FilePurpose::Combine, vec![("secret.pdf".into(), protected("pw", "owner", -1))]);
     h.run_steps(3);
     h.get_by_label("Password-protected");
     assert!(h.get_by_label("Combine").accesskit_node().is_disabled());
@@ -1015,7 +1015,7 @@ fn a_password_protected_file_is_unlocked_with_its_password_and_combined() {
 fn one_password_unlocks_several_selected_files_and_undo_locks_them_again() {
     let mut h = combine_of(&[("one.pdf", 1)]);
     h.state_mut().use_files(
-        pdfcraft_ui_egui::FilePurpose::Combine,
+        insurcraft_ui_egui::FilePurpose::Combine,
         vec![
             ("a.pdf".into(), protected("same", "o1", -1)),
             ("b.pdf".into(), protected("same", "o2", -1)),
@@ -1041,11 +1041,11 @@ fn one_password_unlocks_several_selected_files_and_undo_locks_them_again() {
 fn a_file_that_opens_but_forbids_combining_takes_the_permissions_password() {
     let mut h = combine_of(&[("one.pdf", 1)]);
     // Opens with "pw"; only the owner may assemble pages.
-    h.state_mut().use_files(pdfcraft_ui_egui::FilePurpose::Combine, vec![("both.pdf".into(), protected("pw", "owner", -1 ^ 1024 ^ 8))]);
+    h.state_mut().use_files(insurcraft_ui_egui::FilePurpose::Combine, vec![("both.pdf".into(), protected("pw", "owner", -1 ^ 1024 ^ 8))]);
     h.run_steps(3);
     assert!(h.state_mut().combine_unlock_rows(&[1], "pw"));
     h.run_steps(2);
-    assert_eq!(h.state().combine_draft[1].lock, Some(pdfcraft_ui_egui::CombineLock::Permissions));
+    assert_eq!(h.state().combine_draft[1].lock, Some(insurcraft_ui_egui::CombineLock::Permissions));
     h.get_by_label_contains("Enter the permissions password");
     h.get_all_by_label("Unlock…").last().unwrap().click();
     h.run_steps(3);
@@ -1061,8 +1061,8 @@ fn an_rc4_file_unlocks_with_its_owner_password_too() {
     // engine's answer is the one that counts.
     let mut h = combine_of(&[("one.pdf", 1)]);
     h.state_mut().use_files(
-        pdfcraft_ui_egui::FilePurpose::Combine,
-        vec![("rc4.pdf".into(), protected_with(pdfcraft_cos::Algorithm::Rc4_128, "user", "boss", -1))],
+        insurcraft_ui_egui::FilePurpose::Combine,
+        vec![("rc4.pdf".into(), protected_with(insurcraft_cos::Algorithm::Rc4_128, "user", "boss", -1))],
     );
     h.run_steps(3);
     assert!(h.state_mut().combine_unlock_rows(&[1], "boss"));
@@ -1111,7 +1111,7 @@ fn inserting_a_file_goes_after_the_selection_and_undoes() {
     let mut h = organize(2);
     h.get_by_label("Page 1").click();
     h.run_steps(2);
-    h.state_mut().use_files(pdfcraft_ui_egui::FilePurpose::InsertPages, vec![("extra.pdf".into(), fixture(2))]);
+    h.state_mut().use_files(insurcraft_ui_egui::FilePurpose::InsertPages, vec![("extra.pdf".into(), fixture(2))]);
     h.run_steps(3);
     assert_eq!(texts_of(h.state(), 0), ["Page 1", "Page 1", "Page 2", "Page 2"]);
     h.key_press_modifiers(Modifiers::COMMAND, Key::Z);
@@ -1156,7 +1156,7 @@ fn plus_between_pages_inserts_picked_files_there_in_order() {
     assert_eq!(texts_of(h.state(), 0), ["a note", "Page 1", "a note", "Page 2", "Page 3", "a note"]);
     // A file that can't be converted changes nothing.
     let before = texts_of(h.state(), 0);
-    h.state_mut().use_files(pdfcraft_ui_egui::FilePurpose::InsertPages, vec![("report.docx".into(), b"PK\x03\x04".to_vec())]);
+    h.state_mut().use_files(insurcraft_ui_egui::FilePurpose::InsertPages, vec![("report.docx".into(), b"PK\x03\x04".to_vec())]);
     h.run_steps(2);
     assert_eq!(texts_of(h.state(), 0), before);
 }
@@ -1174,7 +1174,7 @@ impl egui::DroppedFile for Dropped {
     }
 }
 
-fn drop_files(h: &mut Harness<'static, PdfCraftApp>, files: Vec<Dropped>) {
+fn drop_files(h: &mut Harness<'static, InsurCraftApp>, files: Vec<Dropped>) {
     for f in files {
         h.input_mut().dropped_files.push(std::sync::Arc::new(f));
     }
@@ -1228,14 +1228,14 @@ fn files_dropped_outside_the_page_grid_still_open_as_documents() {
     assert_eq!(texts_of(h.state(), 0), ["Page 1", "Page 2"]);
 }
 
-fn grid_zoom(h: &Harness<'static, PdfCraftApp>) -> f32 {
+fn grid_zoom(h: &Harness<'static, InsurCraftApp>) -> f32 {
     h.state().views[0].grid_zoom()
 }
 
 #[test]
 fn page_grid_zooms_with_its_buttons_keys_and_pinch() {
     let mut h = organize(12);
-    let width = |h: &Harness<'static, PdfCraftApp>| h.get_by_label("Page 2").rect().left() - h.get_by_label("Page 1").rect().left();
+    let width = |h: &Harness<'static, InsurCraftApp>| h.get_by_label("Page 2").rect().left() - h.get_by_label("Page 1").rect().left();
     let usual = width(&h);
     h.get_by_label("Larger pages").click();
     h.run_steps(3);
@@ -1295,7 +1295,7 @@ fn zoomed_pages_in_view_are_rendered_at_the_size_drawn() {
         app.set_option("grid-zoom", "300").unwrap();
     });
     let drawn = 146.0 * 3.0 * h.ctx.pixels_per_point();
-    let sharp = |h: &Harness<'static, PdfCraftApp>, page| h.state().views[0].grid_page_pixels(page);
+    let sharp = |h: &Harness<'static, InsurCraftApp>, page| h.state().views[0].grid_page_pixels(page);
     for _ in 0..200 {
         if sharp(&h, 0).is_some_and(|w| w as f32 >= drawn * 0.9) {
             break;
@@ -1351,7 +1351,7 @@ fn save_pages_writes_what_the_grid_shows() {
     h.get_by_label("Save pages").click();
     h.run_steps(4);
     assert!(!dirty(&h));
-    let mut app = PdfCraftApp::new();
+    let mut app = InsurCraftApp::new();
     app.set_option("language", "en").unwrap();
     app.open_bytes("saved.pdf", None, std::fs::read(&path).unwrap()).unwrap();
     assert_eq!(texts_of(&app, 0), ["Page 1", "Page 3"]);
@@ -1374,7 +1374,7 @@ fn split_dialog_writes_one_file_per_part() {
     names.sort();
     assert_eq!(names, ["doc (page 1).pdf", "doc (page 2).pdf", "doc (page 3).pdf"]);
     for name in names {
-        let info = pdfcraft_render::inspect(std::sync::Arc::new(std::fs::read(dir.join(name)).unwrap()), None).unwrap();
+        let info = insurcraft_render::inspect(std::sync::Arc::new(std::fs::read(dir.join(name)).unwrap()), None).unwrap();
         assert_eq!(info.pages.len(), 1);
     }
     let _ = std::fs::remove_dir_all(dir);
@@ -1388,7 +1388,7 @@ fn split_before_selected_pages() {
     let mut h = organize(4);
     h.state_mut().export_dir_override = Some(dir.to_string_lossy().into_owned());
     h.state_mut().views[0].select_pages(&[2]);
-    h.state_mut().split_draft.mode = pdfcraft_ui_egui::SplitMode::Selection;
+    h.state_mut().split_draft.mode = insurcraft_ui_egui::SplitMode::Selection;
     h.state_mut().run_command("page.split");
     h.run_steps(3);
     h.get_by_label_contains("Creates 2 files from 4 pages");
@@ -1403,12 +1403,12 @@ fn split_before_selected_pages() {
 // ── Encrypted documents ───────────────────────────────────────────────────────────────────────
 
 fn protected(user: &str, owner: &str, permissions: i32) -> Vec<u8> {
-    protected_with(pdfcraft_cos::Algorithm::Aes256, user, owner, permissions)
+    protected_with(insurcraft_cos::Algorithm::Aes256, user, owner, permissions)
 }
 
-fn protected_with(algorithm: pdfcraft_cos::Algorithm, user: &str, owner: &str, permissions: i32) -> Vec<u8> {
-    let mut doc = pdfcraft_cos::Document::open(std::sync::Arc::new(fixture(2))).unwrap();
-    doc.set_encryption(&pdfcraft_cos::NewEncryption {
+fn protected_with(algorithm: insurcraft_cos::Algorithm, user: &str, owner: &str, permissions: i32) -> Vec<u8> {
+    let mut doc = insurcraft_cos::Document::open(std::sync::Arc::new(fixture(2))).unwrap();
+    doc.set_encryption(&insurcraft_cos::NewEncryption {
         algorithm,
         user_password: user,
         owner_password: owner,
@@ -1417,13 +1417,13 @@ fn protected_with(algorithm: pdfcraft_cos::Algorithm, user: &str, owner: &str, p
         seed: [4; 32],
     })
     .unwrap();
-    pdfcraft_cos::write_full(&doc, &Default::default()).unwrap()
+    insurcraft_cos::write_full(&doc, &Default::default()).unwrap()
 }
 
 #[test]
 fn password_prompt_opens_and_security_tab_reports_the_details() {
     let mut h = Harness::builder().with_size(egui::vec2(1400.0, 900.0)).build_eframe(|_cc| {
-        let mut app = PdfCraftApp::new();
+        let mut app = InsurCraftApp::new();
         app.set_option("language", "en").unwrap();
         app.open_bytes("secret.pdf", None, protected("pw", "owner", -1)).unwrap();
         app
@@ -1448,7 +1448,7 @@ fn password_prompt_opens_and_security_tab_reports_the_details() {
 #[test]
 fn restricted_documents_show_a_notice_and_block_page_changes() {
     let mut h = Harness::builder().with_size(egui::vec2(1400.0, 900.0)).build_eframe(|_cc| {
-        let mut app = PdfCraftApp::new();
+        let mut app = InsurCraftApp::new();
         app.set_option("language", "en").unwrap();
         app.open_bytes("locked.pdf", None, protected("", "owner", 0b0100)).unwrap(); // opens without a password
         app.set_option("organize", "on").unwrap();
@@ -1475,7 +1475,7 @@ fn restricted_documents_show_a_notice_and_block_page_changes() {
 
 #[test]
 fn replace_pages_dialog_swaps_page_content() {
-    let mut app = PdfCraftApp::new();
+    let mut app = InsurCraftApp::new();
     app.set_option("language", "en").unwrap();
     app.open_bytes("doc.pdf", None, fixture(3)).unwrap();
     app.views[0].select_pages(&[1]);
@@ -1503,7 +1503,7 @@ fn extract_options_and_rotate_pages_dialog() {
     h.state_mut().views[0].select_pages(&[1, 2]);
     h.state_mut().run_command("page.extract");
     h.run_steps(2);
-    h.state_mut().extract_draft = pdfcraft_ui_egui::ExtractDraft { separate: true, delete: true, ..Default::default() };
+    h.state_mut().extract_draft = insurcraft_ui_egui::ExtractDraft { separate: true, delete: true, ..Default::default() };
     h.get_all_by_label("Extract").last().unwrap().click();
     h.run_steps(3);
     let mut names: Vec<String> = std::fs::read_dir(&dir).unwrap().map(|e| e.unwrap().file_name().to_string_lossy().into_owned()).collect();
@@ -1515,7 +1515,7 @@ fn extract_options_and_rotate_pages_dialog() {
     h.state_mut().run_command("page.rotate_dialog");
     h.run_steps(2);
     h.state_mut().rotate_draft.which = 0;
-    h.state_mut().rotate_draft.parity = pdfcraft_engine::PageParity::Odd;
+    h.state_mut().rotate_draft.parity = insurcraft_engine::PageParity::Odd;
     h.get_by_label("OK").click();
     h.run_steps(3);
     let s = h.state();
@@ -1527,7 +1527,7 @@ fn extract_options_and_rotate_pages_dialog() {
 fn dragging_thumbnails_reorders_pages() {
     let mut h = organize(4);
     let before = page_texts(h.state());
-    let grab = |h: &Harness<'static, PdfCraftApp>, label: &str| h.get_by_label(label).rect();
+    let grab = |h: &Harness<'static, InsurCraftApp>, label: &str| h.get_by_label(label).rect();
     let (from, to) = (grab(&h, "Page 1").center(), grab(&h, "Page 3").right_center() - egui::vec2(10.0, 0.0));
     h.hover_at(from);
     h.run_steps(1);
@@ -1581,7 +1581,7 @@ fn source_font_fixture() -> Vec<u8> {
         "<< /Type /Font /Subtype /Type1 /BaseFont /Times-BoldItalic >>".into(),
         "<< /Type /Page /Parent 2 0 R /Contents 7 0 R /Resources << /Font << /F1 3 0 R /F2 5 0 R >> >> >>".into(),
         "<< /Type /Font /Subtype /Type1 /BaseFont /Courier-Oblique >>".into(),
-        "<< /Producer (PdfCraft) >>".into(),
+        "<< /Producer (InsurCraft) >>".into(),
         format!("<< /Length {} >>\nstream\n{body}\nendstream", body.len()),
     ];
     let mut out = b"%PDF-1.7\n".to_vec();
@@ -1599,9 +1599,9 @@ fn source_font_fixture() -> Vec<u8> {
     out
 }
 
-fn open_source_font_fixture() -> Harness<'static, PdfCraftApp> {
+fn open_source_font_fixture() -> Harness<'static, InsurCraftApp> {
     Harness::builder().with_size(egui::vec2(1400.0, 900.0)).build_eframe(|_cc| {
-        let mut app = PdfCraftApp::new();
+        let mut app = InsurCraftApp::new();
         app.set_option("language", "en").unwrap();
         app.open_bytes("fonts.pdf", None, source_font_fixture()).expect("font fixture opens");
         app
@@ -1625,7 +1625,7 @@ fn clicking_existing_text_selects_its_source_font_style() {
     h.drop_at(serif);
     h.run_steps(3);
     let ed = h.state().views[0].line_editor.clone().expect("serif editor opens");
-    assert_eq!(ed.look.family, pdfcraft_engine::FontFamily::Times);
+    assert_eq!(ed.look.family, insurcraft_engine::FontFamily::Times);
     assert!(ed.look.bold && ed.look.italic, "source style: {:?}", ed.look);
 
     h.key_press(egui::Key::Escape);
@@ -1638,7 +1638,7 @@ fn clicking_existing_text_selects_its_source_font_style() {
     h.drop_at(mono);
     h.run_steps(3);
     let ed = h.state().views[0].line_editor.clone().expect("mono editor opens");
-    assert_eq!(ed.look.family, pdfcraft_engine::FontFamily::Courier);
+    assert_eq!(ed.look.family, insurcraft_engine::FontFamily::Courier);
     assert!(!ed.look.bold && ed.look.italic, "source style: {:?}", ed.look);
 }
 
@@ -1702,7 +1702,7 @@ fn double_drawn() -> Vec<u8> {
 #[test]
 fn editing_a_double_drawn_line_replaces_every_copy() {
     let mut h = Harness::builder().with_size(egui::vec2(1400.0, 900.0)).build_eframe(|_cc| {
-        let mut app = PdfCraftApp::new();
+        let mut app = InsurCraftApp::new();
         app.set_option("language", "en").unwrap();
         app.open_bytes("bold.pdf", None, double_drawn()).expect("opens");
         app
@@ -1739,9 +1739,9 @@ fn editing_existing_images_on_the_page() {
 
 #[test]
 fn editing_existing_form_artwork_on_the_page() {
-    use pdfcraft_cos::{Dict, Document, Object, SaveOptions, Stream, write_incremental};
+    use insurcraft_cos::{Dict, Document, Object, SaveOptions, Stream, write_incremental};
     let mut doc = Document::open(std::sync::Arc::new(fixture(1))).unwrap();
-    let page = pdfcraft_model::pages(&doc)[0].clone();
+    let page = insurcraft_model::pages(&doc)[0].clone();
     let mut form = Dict::new();
     form.set(b"Subtype".to_vec(), Object::name("Form"));
     form.set(b"BBox".to_vec(), Object::Array([0, 0, 200, 300].map(Object::Int).to_vec()));
@@ -1761,7 +1761,7 @@ fn editing_existing_form_artwork_on_the_page() {
 
 fn check_existing_artwork(name: &'static str, bytes: Vec<u8>) {
     let mut h = Harness::builder().with_size(egui::vec2(1400.0, 900.0)).build_eframe(move |_cc| {
-        let mut app = PdfCraftApp::new();
+        let mut app = InsurCraftApp::new();
         app.set_option("language", "en").unwrap();
         app.open_bytes(name, None, bytes.clone()).expect("opens");
         app
@@ -1836,7 +1836,7 @@ fn the_format_panel_restyles_the_paragraph_being_edited() {
 }
 
 /// Drag with the pointer from `from` to `to` in a few steps.
-fn drag(h: &mut Harness<'static, PdfCraftApp>, from: egui::Pos2, to: egui::Pos2) {
+fn drag(h: &mut Harness<'static, InsurCraftApp>, from: egui::Pos2, to: egui::Pos2) {
     h.hover_at(from);
     h.run_steps(1);
     h.drag_at(from);
@@ -1854,7 +1854,7 @@ fn dragging_a_paragraph_moves_it_and_its_edge_rewraps_it() {
     let mut h = harness(1, |_| {});
     assert!(h.state_mut().execute("edit.edit_text"));
     h.run_steps(2);
-    let block = |h: &Harness<'static, PdfCraftApp>| {
+    let block = |h: &Harness<'static, InsurCraftApp>| {
         let s = h.state();
         s.session.get(s.views[0].id).unwrap().text_blocks(0)[0].clone()
     };
@@ -1885,7 +1885,7 @@ fn dragging_a_paragraph_moves_it_and_its_edge_rewraps_it() {
 }
 
 /// A quick flick: press at `from`, and the next frame already finds the pointer at `to`.
-fn flick(h: &mut Harness<'static, PdfCraftApp>, from: egui::Pos2, to: egui::Pos2) {
+fn flick(h: &mut Harness<'static, InsurCraftApp>, from: egui::Pos2, to: egui::Pos2) {
     h.hover_at(from);
     h.run_steps(1);
     h.drag_at(from);
@@ -1901,11 +1901,11 @@ fn a_quick_flick_on_either_edge_rewraps_the_paragraph() {
     let mut h = harness(1, |_| {});
     assert!(h.state_mut().execute("edit.edit_text"));
     h.run_steps(2);
-    let lines = |h: &Harness<'static, PdfCraftApp>| {
+    let lines = |h: &Harness<'static, InsurCraftApp>| {
         let s = h.state();
         s.session.get(s.views[0].id).unwrap().text_lines(0)
     };
-    let block = |h: &Harness<'static, PdfCraftApp>| {
+    let block = |h: &Harness<'static, InsurCraftApp>| {
         let s = h.state();
         s.session.get(s.views[0].id).unwrap().text_blocks(0)[0].clone()
     };
@@ -1915,7 +1915,7 @@ fn a_quick_flick_on_either_edge_rewraps_the_paragraph() {
     let near = |a: f64, b: f64| (a - b).abs() < 1.5;
     // Grab edges near the box's top: a rewrapped box reaches the window's bottom, where the
     // tool's toast sits over the page and takes the press.
-    let grip_y = |b: &pdfcraft_engine::TextBlock| b.rect[3] - 6.0;
+    let grip_y = |b: &insurcraft_engine::TextBlock| b.rect[3] - 6.0;
     // Narrow "Page 1" from its right edge to about 45 pt: it rewraps onto two lines.
     let b = block(&h);
     let edge = screen(b.rect[2], grip_y(&b)) + egui::vec2(2.0, 0.0);
@@ -1941,9 +1941,9 @@ fn a_quick_flick_on_either_edge_rewraps_the_paragraph() {
 }
 
 /// The Pages panel, in a window tall enough to show every thumbnail of a short fixture.
-fn pages_panel(pages: usize) -> Harness<'static, PdfCraftApp> {
+fn pages_panel(pages: usize) -> Harness<'static, InsurCraftApp> {
     let mut h = Harness::builder().with_size(egui::vec2(1400.0, 1900.0)).build_eframe(move |_cc| {
-        let mut app = PdfCraftApp::new();
+        let mut app = InsurCraftApp::new();
         app.set_option("language", "en").unwrap();
         app.open_bytes("doc.pdf", None, fixture(pages)).expect("fixture opens");
         app.set_option("panel", "pages").unwrap();
@@ -1953,7 +1953,7 @@ fn pages_panel(pages: usize) -> Harness<'static, PdfCraftApp> {
     h
 }
 
-fn picked(h: &Harness<'static, PdfCraftApp>) -> Vec<usize> {
+fn picked(h: &Harness<'static, InsurCraftApp>) -> Vec<usize> {
     h.state().views[0].selected.iter().copied().collect()
 }
 
@@ -2034,8 +2034,8 @@ fn print_shortcut_offers_the_pages_picked_in_the_pages_panel() {
     assert_eq!(picked(&h), [1, 3]);
     h.key_press_modifiers(Modifiers::COMMAND, Key::P);
     h.run_steps(3);
-    assert_eq!(h.state().dialog, Some(pdfcraft_ui_egui::Dialog::Print));
-    assert_eq!(h.state().print_draft.which, pdfcraft_ui_egui::PrintWhich::Selected);
+    assert_eq!(h.state().dialog, Some(insurcraft_ui_egui::Dialog::Print));
+    assert_eq!(h.state().print_draft.which, insurcraft_ui_egui::PrintWhich::Selected);
     assert_eq!(h.state().print_draft.selected, [1, 3]);
     h.get_by_label("Selected pages (2)");
     h.get_by_label("Sheet 1 of 2");
@@ -2043,10 +2043,10 @@ fn print_shortcut_offers_the_pages_picked_in_the_pages_panel() {
 
 #[test]
 fn dragging_pages_panel_thumbnails_reorders_pages() {
-    let mut h = harness(4, |app| app.right = Some(pdfcraft_ui_egui::RightPanel::Pages));
+    let mut h = harness(4, |app| app.right = Some(insurcraft_ui_egui::RightPanel::Pages));
     let before = page_texts(h.state());
     // The Pages panel is on the right; the document view may label its pages too.
-    let thumb = |h: &Harness<'static, PdfCraftApp>, label: &str| {
+    let thumb = |h: &Harness<'static, InsurCraftApp>, label: &str| {
         h.get_all_by_label(label).map(|n| n.rect()).max_by(|a, b| a.left().total_cmp(&b.left())).expect("the thumbnail")
     };
     // Grab page 3 (page 4 is below the window) and drop it above page 1.
@@ -2063,7 +2063,7 @@ fn dragging_pages_panel_thumbnails_reorders_pages() {
 
 #[test]
 fn a_thumbnail_drag_that_ends_off_the_panel_or_outlives_the_pages_is_dropped() {
-    let mut h = harness(4, |app| app.right = Some(pdfcraft_ui_egui::RightPanel::Pages));
+    let mut h = harness(4, |app| app.right = Some(insurcraft_ui_egui::RightPanel::Pages));
     let before = page_texts(h.state());
     // A drag left over (the panel closed mid-drag, the button released elsewhere) moves nothing.
     h.state_mut().views[0].panel_drag = Some(vec![2]);
@@ -2079,11 +2079,11 @@ fn a_thumbnail_drag_that_ends_off_the_panel_or_outlives_the_pages_is_dropped() {
 }
 
 /// A Pages panel thumbnail (the rightmost node with that label).
-fn panel_thumb(h: &Harness<'static, PdfCraftApp>, label: &str) -> egui::Pos2 {
+fn panel_thumb(h: &Harness<'static, InsurCraftApp>, label: &str) -> egui::Pos2 {
     h.get_all_by_label(label).map(|n| n.rect()).max_by(|a, b| a.left().total_cmp(&b.left())).expect("the thumbnail").center()
 }
 
-fn right_click_at(h: &mut Harness<'static, PdfCraftApp>, at: egui::Pos2) {
+fn right_click_at(h: &mut Harness<'static, InsurCraftApp>, at: egui::Pos2) {
     h.hover_at(at);
     h.run_steps(1);
     h.event(egui::Event::PointerButton { pos: at, button: egui::PointerButton::Secondary, pressed: true, modifiers: Default::default() });

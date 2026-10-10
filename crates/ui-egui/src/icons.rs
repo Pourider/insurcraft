@@ -61,7 +61,7 @@ pub fn button(ui: &mut egui::Ui, name: &str, box_size: f32, selected: bool, tool
 mod tests {
     #[test]
     fn every_catalog_icon_exists() {
-        for g in pdfcraft_engine::catalog::TOOL_GROUPS {
+        for g in insurcraft_engine::catalog::TOOL_GROUPS {
             assert!(super::exists(g.icon), "missing icon {}", g.icon);
             for s in g.sections {
                 for i in s.items {
@@ -73,7 +73,7 @@ mod tests {
 
     #[test]
     fn every_command_icon_exists() {
-        for c in pdfcraft_engine::commands::COMMANDS {
+        for c in insurcraft_engine::commands::COMMANDS {
             assert!(super::exists(c.icon), "missing icon {} ({})", c.icon, c.id);
         }
     }

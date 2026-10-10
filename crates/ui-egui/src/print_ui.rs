@@ -4,10 +4,10 @@
 //! sheets. Printing sends the print-ready PDF to the system spooler; "Save as PDF" writes it.
 
 use egui::{Color32, Pos2, Rect, Stroke, pos2, vec2};
-use pdfcraft_engine::print::{self, Binding, BookletSubset, Content, Layout, Orientation, PAPERS, PageOrder, SizeMode, Subset, spool};
+use insurcraft_engine::print::{self, Binding, BookletSubset, Content, Layout, Orientation, PAPERS, PageOrder, SizeMode, Subset, spool};
 
 use crate::theme::{self, Tokens};
-use crate::{PdfCraftApp, widgets};
+use crate::{InsurCraftApp, widgets};
 
 /// The preview pane, and the paper inside it (12 pt inset on each side).
 const PREVIEW_W: f32 = 320.0;
@@ -165,7 +165,7 @@ impl PrintDraft {
     }
 }
 
-impl PdfCraftApp {
+impl InsurCraftApp {
     pub fn open_print(&mut self) {
         let Some((i, _)) = self.active_ids() else { return };
         let printers = spool::printers();

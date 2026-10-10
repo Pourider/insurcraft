@@ -2,7 +2,7 @@
 
 use egui_kittest::Harness;
 use egui_kittest::kittest::Queryable;
-use pdfcraft_ui_egui::PdfCraftApp;
+use insurcraft_ui_egui::InsurCraftApp;
 
 /// A tiny PDF with two pages, two bookmarks and one sticky note.
 const FIXTURE: &[u8] = b"%PDF-1.7
@@ -17,9 +17,9 @@ const FIXTURE: &[u8] = b"%PDF-1.7
 trailer << /Root 1 0 R >>
 %%EOF";
 
-fn harness(setup: impl FnOnce(&mut PdfCraftApp) + 'static) -> Harness<'static, PdfCraftApp> {
+fn harness(setup: impl FnOnce(&mut InsurCraftApp) + 'static) -> Harness<'static, InsurCraftApp> {
     let mut h = Harness::builder().with_size(egui::vec2(1400.0, 900.0)).build_eframe(move |_cc| {
-        let mut app = PdfCraftApp::new();
+        let mut app = InsurCraftApp::new();
         app.set_option("language", "en").unwrap();
         setup(&mut app);
         app
@@ -32,14 +32,14 @@ fn harness(setup: impl FnOnce(&mut PdfCraftApp) + 'static) -> Harness<'static, P
 #[test]
 fn home_shows_welcome_and_tools() {
     let h = harness(|_| {});
-    h.get_by_label_contains("Welcome to PdfCraft");
+    h.get_by_label_contains("Welcome to InsurCraft");
     assert!(h.query_all_by_label("Organize pages").count() >= 2, "tool list + home card");
     h.get_by_label("Open file");
 }
 
 /// Every piece of text painted on the last frame: its whole text, whether it was cut with "…",
 /// and where it was drawn.
-fn painted_text(h: &Harness<'static, PdfCraftApp>) -> Vec<(String, bool, egui::Rect)> {
+fn painted_text(h: &Harness<'static, InsurCraftApp>) -> Vec<(String, bool, egui::Rect)> {
     h.output()
         .shapes
         .iter()
@@ -56,7 +56,7 @@ fn long_recent_names_and_paths_are_cut_before_the_page_count() {
     let path = format!("/{}/{name}", "A folder with a long name".repeat(8));
     let h = harness({
         let (name, path) = (name.clone(), path.clone());
-        move |app| app.recent.push(pdfcraft_ui_egui::RecentFile { name, path, pages: 7, size: 2048 })
+        move |app| app.recent.push(insurcraft_ui_egui::RecentFile { name, path, pages: 7, size: 2048 })
     });
     let text = painted_text(&h);
     let detail = text.iter().find(|(s, ..)| s.starts_with("7 pages")).expect("the row shows its page count").2;
@@ -71,10 +71,10 @@ fn long_recent_names_and_paths_are_cut_before_the_page_count() {
 fn home_removes_one_recent_file_or_clears_them_all() {
     // Tall enough that the Recent list is on screen without scrolling.
     let mut h = Harness::builder().with_size(egui::vec2(1400.0, 1600.0)).build_eframe(|_cc| {
-        let mut app = PdfCraftApp::new();
+        let mut app = InsurCraftApp::new();
         app.set_option("language", "en").unwrap();
         for name in ["first.pdf", "second.pdf", "third.pdf"] {
-            app.recent.push(pdfcraft_ui_egui::RecentFile { name: name.into(), path: format!("/nowhere/{name}"), pages: 1, size: 0 });
+            app.recent.push(insurcraft_ui_egui::RecentFile { name: name.into(), path: format!("/nowhere/{name}"), pages: 1, size: 0 });
         }
         app
     });
@@ -89,7 +89,7 @@ fn home_removes_one_recent_file_or_clears_them_all() {
     h.get_by_label("Clear Recent Files").click();
     h.run_steps(2);
     assert!(h.state().recent.is_empty(), "Clear empties the list");
-    h.get_by_label_contains("Files you open in PdfCraft appear here");
+    h.get_by_label_contains("Files you open in InsurCraft appear here");
     assert!(h.query_by_label("Clear Recent Files").is_none(), "and goes away with nothing left to clear");
 }
 
@@ -98,7 +98,7 @@ fn every_catalog_tool_is_listed_after_view_more() {
     let mut h = harness(|_| {});
     h.get_by_label("View more").click();
     h.run_steps(3);
-    for g in pdfcraft_engine::catalog::TOOL_GROUPS {
+    for g in insurcraft_engine::catalog::TOOL_GROUPS {
         assert!(h.query_all_by_label(g.label).count() >= 1, "tool {} missing from All tools", g.label);
     }
 }
@@ -166,14 +166,14 @@ fn overflowing_tabs_can_be_reached_by_scrolling() {
     h.run_steps(4);
     assert_eq!(h.state().views.len(), 19);
     assert!(h.state().active.is_some_and(|i| i < 19));
-    if let Ok(dir) = std::env::var("PDFCRAFT_TAB_SHOTS") {
+    if let Ok(dir) = std::env::var("INSURCRAFT_TAB_SHOTS") {
         settle(&mut h);
         h.render().unwrap().save(format!("{dir}/overflow-tabs.png")).unwrap();
     }
 }
 
 /// Whether a node labelled `label` is there and enabled (`None`: not there).
-fn enabled(h: &Harness<'static, PdfCraftApp>, label: &str) -> Option<bool> {
+fn enabled(h: &Harness<'static, InsurCraftApp>, label: &str) -> Option<bool> {
     h.query_by_label(label)?;
     Some(h.query_by(|n| n.label().as_deref() == Some(label) && n.is_disabled()).is_none())
 }
@@ -189,8 +189,8 @@ fn tabs_shrink_to_fit_then_arrows_step_through_them_and_open_stays_in_sight() {
         }
     });
     let open = h.get_by_label("Open").rect();
-    let discord = h.get_by_label("Discord").rect();
-    assert!(open.right() <= discord.left(), "Open {open:?} must not run under Discord {discord:?}");
+    let discord = h.get_by_label("GitHub").rect();
+    assert!(open.right() <= discord.left(), "Open {open:?} must not run under the GitHub button {discord:?}");
     let mut previous_right = f32::MIN;
     for i in 0..5 {
         let tab = h.get_by_label(&name(i)).rect();
@@ -214,22 +214,22 @@ fn tabs_shrink_to_fit_then_arrows_step_through_them_and_open_stays_in_sight() {
     assert_eq!(enabled(&h, "Scroll tabs right"), Some(true), "and then there is more to the right");
     let open = h.get_by_label("Open").rect();
     let right = h.get_by_label("Scroll tabs right").rect();
-    assert!(right.right() <= open.left() + 0.5 && open.right() <= h.get_by_label("Discord").rect().left());
-    // Twenty: Open stays in sight left of Discord.
+    assert!(right.right() <= open.left() + 0.5 && open.right() <= h.get_by_label("GitHub").rect().left());
+    // Twenty: Open stays in sight left of the GitHub button.
     for i in 0..13 {
         h.state_mut().open_bytes(&format!("more-{i:02}.pdf"), None, FIXTURE.to_vec()).unwrap();
     }
     h.run_steps(4);
     let open = h.get_by_label("Open").rect();
-    let discord = h.get_by_label("Discord").rect();
-    assert!(open.left() > 0.0 && open.right() <= discord.left(), "Open {open:?} stays in sight left of Discord {discord:?}");
+    let discord = h.get_by_label("GitHub").rect();
+    assert!(open.left() > 0.0 && open.right() <= discord.left(), "Open {open:?} stays in sight left of the GitHub button {discord:?}");
 }
 
 #[test]
 fn narrow_tab_strips_accept_vertical_wheel_scrolling() {
     for width in [600.0, 900.0] {
         let mut h = Harness::builder().with_size(egui::vec2(width, 700.0)).build_eframe(|_cc| {
-            let mut app = PdfCraftApp::new();
+            let mut app = InsurCraftApp::new();
             app.set_option("language", "en").unwrap();
             for i in 0..12 {
                 app.open_bytes(&format!("narrow-{i:02}.pdf"), None, FIXTURE.to_vec()).unwrap();
@@ -259,7 +259,7 @@ fn narrow_tab_strips_accept_vertical_wheel_scrolling() {
         h.run_steps(4);
         assert_eq!(h.state().active, Some(11));
         assert!(h.get_by_label_contains("Display theme:").rect().right() <= width);
-        if let Ok(dir) = std::env::var("PDFCRAFT_TAB_SHOTS") {
+        if let Ok(dir) = std::env::var("INSURCRAFT_TAB_SHOTS") {
             settle(&mut h);
             h.render().unwrap().save(format!("{dir}/tabs-{width}.png")).unwrap();
         }
@@ -268,7 +268,7 @@ fn narrow_tab_strips_accept_vertical_wheel_scrolling() {
 
 #[test]
 fn garbage_input_is_rejected_without_panicking() {
-    let mut app = PdfCraftApp::new();
+    let mut app = InsurCraftApp::new();
     app.set_option("language", "en").unwrap();
     assert!(app.open_bytes("junk.pdf", None, b"this is not a pdf".to_vec()).is_err());
     assert!(app.open_bytes("empty.pdf", None, Vec::new()).is_err());
@@ -307,7 +307,7 @@ endstream endobj
 trailer << /Root 1 0 R >>
 %%EOF";
 
-fn settle(h: &mut Harness<'static, PdfCraftApp>) {
+fn settle(h: &mut Harness<'static, InsurCraftApp>) {
     for _ in 0..200 {
         h.run_steps(2);
         if !h.state().render_pending() {
@@ -367,39 +367,39 @@ fn drag_selects_text_and_copy_returns_it() {
 
 #[test]
 fn persistence_round_trips_and_tolerates_garbage() {
-    let mut a = PdfCraftApp::new();
+    let mut a = InsurCraftApp::new();
     a.set_option("language", "en").unwrap();
     a.set_option("theme", "dark").unwrap();
     let json = a.persist();
-    let mut b = PdfCraftApp::new();
+    let mut b = InsurCraftApp::new();
     b.set_option("language", "en").unwrap();
     b.restore(&json);
-    assert_eq!(b.theme, pdfcraft_ui_egui::theme::ThemeKind::Dark);
+    assert_eq!(b.theme, insurcraft_ui_egui::theme::ThemeKind::Dark);
     b.restore("{not json");
     b.restore("{\"recent\": 5, \"theme\": \"Purple\"}");
-    assert_eq!(b.theme, pdfcraft_ui_egui::theme::ThemeKind::Dark);
+    assert_eq!(b.theme, insurcraft_ui_egui::theme::ThemeKind::Dark);
 }
 
 /// A tool's saved "no fill" (`"fill": null`) clears a fill it had as its default; a missing or
 /// malformed fill keeps it (#340).
 #[test]
 fn a_saved_no_fill_clears_a_comment_tool_default_fill() {
-    use pdfcraft_ui_egui::comments::CommentTool;
-    let filled = |a: &mut PdfCraftApp| {
+    use insurcraft_ui_egui::comments::CommentTool;
+    let filled = |a: &mut InsurCraftApp| {
         let mut s = a.comment_prefs.style(CommentTool::Rectangle);
         s.fill = Some([0.2, 0.4, 0.6]);
         a.comment_prefs.set_style(CommentTool::Rectangle, s);
     };
-    let mut a = PdfCraftApp::new();
+    let mut a = InsurCraftApp::new();
     filled(&mut a);
     a.restore(r#"{"comment_styles":[{"tool":"comment.square","fill":null}]}"#);
     assert_eq!(a.comment_prefs.style(CommentTool::Rectangle).fill, None, "null clears the fill");
-    let mut b = PdfCraftApp::new();
+    let mut b = InsurCraftApp::new();
     filled(&mut b);
     b.restore(r#"{"comment_styles":[{"tool":"comment.square","color":[0,0,1]},{"tool":"comment.square","fill":"red"}]}"#);
     assert_eq!(b.comment_prefs.style(CommentTool::Rectangle).fill, Some([0.2, 0.4, 0.6]), "missing or malformed keeps it");
     // A round trip keeps a cleared fill cleared.
-    let mut c = PdfCraftApp::new();
+    let mut c = InsurCraftApp::new();
     c.restore(&a.persist());
     assert_eq!(c.comment_prefs.style(CommentTool::Rectangle).fill, None);
 }
@@ -408,8 +408,8 @@ fn a_saved_no_fill_clears_a_comment_tool_default_fill() {
 /// values are clamped or ignored, never trusted (#340).
 #[test]
 fn comment_style_settings_clamp_and_refuse_hostile_values() {
-    use pdfcraft_ui_egui::comments::CommentTool;
-    let mut a = PdfCraftApp::new();
+    use insurcraft_ui_egui::comments::CommentTool;
+    let mut a = InsurCraftApp::new();
     a.restore(
         r#"{"comment_styles":[
             {"tool":"comment.highlight","color":[2,-1,0.5],"opacity":99,"width":-4},
@@ -490,7 +490,7 @@ impl egui::DroppedFile for Dropped {
 #[test]
 fn dropping_a_pdf_on_the_window_opens_it() {
     let mut h = Harness::builder().with_size(egui::vec2(1200.0, 800.0)).build_eframe(|_cc| {
-        let mut app = PdfCraftApp::new();
+        let mut app = InsurCraftApp::new();
         app.set_option("language", "en").unwrap();
         app
     });
@@ -506,7 +506,7 @@ fn dropping_a_pdf_on_the_window_opens_it() {
 #[test]
 fn pdfs_dropped_on_the_combine_tab_join_its_list() {
     let mut h = Harness::builder().with_size(egui::vec2(1200.0, 800.0)).build_eframe(|_cc| {
-        let mut app = PdfCraftApp::new();
+        let mut app = InsurCraftApp::new();
         app.set_option("language", "en").unwrap();
         app
     });
@@ -514,7 +514,7 @@ fn pdfs_dropped_on_the_combine_tab_join_its_list() {
     h.state_mut().execute("page.combine");
     h.run_steps(2);
     // An absolute path is read from disk, with its modified time.
-    let path = std::env::temp_dir().join(format!("pdfcraft-combine-drop-{}.pdf", std::process::id()));
+    let path = std::env::temp_dir().join(format!("insurcraft-combine-drop-{}.pdf", std::process::id()));
     std::fs::write(&path, FIXTURE).unwrap();
     let on_disk: egui::DroppedFileHandle = std::sync::Arc::new(Dropped { path: path.clone(), bytes: Vec::new() });
     let in_memory: egui::DroppedFileHandle = std::sync::Arc::new(Dropped { path: "second.pdf".into(), bytes: FIXTURE.to_vec() });
@@ -530,13 +530,13 @@ fn pdfs_dropped_on_the_combine_tab_join_its_list() {
 
 #[test]
 fn a_folder_dropped_on_the_combine_tab_adds_its_pdfs() {
-    let dir = std::env::temp_dir().join(format!("pdfcraft-combine-drop-dir-{}", std::process::id()));
+    let dir = std::env::temp_dir().join(format!("insurcraft-combine-drop-dir-{}", std::process::id()));
     let _ = std::fs::remove_dir_all(&dir);
     std::fs::create_dir_all(dir.join("inner")).unwrap();
     std::fs::write(dir.join("one.pdf"), FIXTURE).unwrap();
     std::fs::write(dir.join("inner").join("two.pdf"), FIXTURE).unwrap();
     let mut h = Harness::builder().with_size(egui::vec2(1200.0, 800.0)).build_eframe(|_cc| {
-        let mut app = PdfCraftApp::new();
+        let mut app = InsurCraftApp::new();
         app.set_option("language", "en").unwrap();
         app
     });
@@ -554,8 +554,8 @@ fn a_folder_dropped_on_the_combine_tab_adds_its_pdfs() {
 #[test]
 fn files_and_quit_from_the_operating_system() {
     // #73: macOS hands Finder double-clicks, Open With and Dock drops over as Apple events.
-    use pdfcraft_ui_egui::OsEvent;
-    let name = format!("pdfcraft-os-open-{}.pdf", std::process::id());
+    use insurcraft_ui_egui::OsEvent;
+    let name = format!("insurcraft-os-open-{}.pdf", std::process::id());
     let path = std::env::temp_dir().join(&name);
     std::fs::write(&path, FIXTURE).unwrap();
     let queue = std::rc::Rc::new(std::cell::RefCell::new(vec![OsEvent::Open(vec![path.to_string_lossy().into_owned()])]));
@@ -573,13 +573,13 @@ fn files_and_quit_from_the_operating_system() {
 
 #[test]
 fn default_workspace_mode_persists_and_tolerates_invalid_settings() {
-    use pdfcraft_ui_egui::Mode;
+    use insurcraft_ui_egui::Mode;
     for mode in [Mode::AllTools, Mode::Read, Mode::Edit, Mode::Convert, Mode::Sign] {
-        let mut app = PdfCraftApp::new();
+        let mut app = InsurCraftApp::new();
         app.set_option("language", "en").unwrap();
         app.default_mode = mode;
         app.set_option("mode", "sign").unwrap();
-        let mut restored = PdfCraftApp::new();
+        let mut restored = InsurCraftApp::new();
         restored.set_option("language", "en").unwrap();
         restored.restore(&app.persist());
         assert_eq!(restored.default_mode, mode);
@@ -587,7 +587,7 @@ fn default_workspace_mode_persists_and_tolerates_invalid_settings() {
         assert_eq!(restored.mode, mode, "session override must not be persisted");
     }
     for json in ["{}", "{not json", r#"{"default_mode": null}"#, r#"{"default_mode": 5}"#, r#"{"default_mode": "unknown"}"#] {
-        let mut app = PdfCraftApp::new();
+        let mut app = InsurCraftApp::new();
         app.set_option("language", "en").unwrap();
         app.restore(json);
         assert_eq!(app.default_mode, Mode::AllTools);
@@ -598,8 +598,8 @@ fn default_workspace_mode_persists_and_tolerates_invalid_settings() {
 
 #[test]
 fn newly_opened_pdfs_use_the_default_workspace() {
-    use pdfcraft_ui_egui::{LeftPanel, Mode};
-    let mut app = PdfCraftApp::new();
+    use insurcraft_ui_egui::{LeftPanel, Mode};
+    let mut app = InsurCraftApp::new();
     app.set_option("language", "en").unwrap();
     app.restore(r#"{"default_mode": "edit"}"#);
     app.open_bytes("first.pdf", None, FIXTURE.to_vec()).unwrap();
@@ -614,16 +614,16 @@ fn newly_opened_pdfs_use_the_default_workspace() {
         String::from_utf8(FIXTURE.to_vec()).unwrap().replace("/Outlines 6 0 R", "/Outlines 6 0 R /PageLayout /TwoColumnLeft /PageMode /UseOutlines");
     app.open_bytes("initial-view.pdf", None, pdf.into_bytes()).unwrap();
     assert_eq!(app.mode, Mode::Read);
-    assert_eq!(app.views.last().unwrap().layout, pdfcraft_ui_egui::canvas::PageLayout::TwoUp);
-    assert_eq!(app.right, Some(pdfcraft_ui_egui::RightPanel::Bookmarks));
+    assert_eq!(app.views.last().unwrap().layout, insurcraft_ui_egui::canvas::PageLayout::TwoUp);
+    assert_eq!(app.right, Some(insurcraft_ui_egui::RightPanel::Bookmarks));
 }
 
 #[test]
 fn explicit_mode_overrides_default_before_and_after_open() {
-    use pdfcraft_ui_egui::Mode;
+    use insurcraft_ui_egui::Mode;
     for before in [false, true] {
         for (value, mode) in [("all", Mode::AllTools), ("read", Mode::Read), ("edit", Mode::Edit), ("convert", Mode::Convert), ("sign", Mode::Sign)] {
-            let mut app = PdfCraftApp::new();
+            let mut app = InsurCraftApp::new();
             app.set_option("language", "en").unwrap();
             app.default_mode = Mode::Read;
             if before {
@@ -646,7 +646,7 @@ fn explicit_mode_overrides_default_before_and_after_open() {
 #[test]
 fn preferences_selects_default_workspace_for_next_open() {
     use egui::accesskit::Role;
-    use pdfcraft_ui_egui::Mode;
+    use insurcraft_ui_egui::Mode;
     let mut h = harness(|app| app.set_option("dialog", "preferences").unwrap());
     h.get_by_label("Default workspace mode");
     h.get_by_role_and_label(Role::RadioButton, "Read").click();
@@ -661,8 +661,8 @@ fn preferences_selects_default_workspace_for_next_open() {
 
 #[test]
 fn explicit_mode_preserves_independent_tool_and_panel_options() {
-    use pdfcraft_ui_egui::LeftPanel;
-    let mut app = PdfCraftApp::new();
+    use insurcraft_ui_egui::LeftPanel;
+    let mut app = InsurCraftApp::new();
     app.set_option("language", "en").unwrap();
     app.set_option("tool", "export").unwrap();
     app.set_option("left", "closed").unwrap();
@@ -676,9 +676,9 @@ fn explicit_mode_preserves_independent_tool_and_panel_options() {
 
 #[test]
 fn opening_a_pdf_keeps_a_closed_left_panel_and_the_chosen_tool() {
-    use pdfcraft_ui_egui::{LeftPanel, Mode};
+    use insurcraft_ui_egui::{LeftPanel, Mode};
     // `--left closed` without `--mode`, default workspace Edit: the panel stays closed.
-    let mut app = PdfCraftApp::new();
+    let mut app = InsurCraftApp::new();
     app.set_option("language", "en").unwrap();
     app.default_mode = Mode::Edit;
     app.set_option("left", "closed").unwrap();
@@ -686,7 +686,7 @@ fn opening_a_pdf_keeps_a_closed_left_panel_and_the_chosen_tool() {
     assert_eq!(app.mode, Mode::Edit);
     assert!(!app.left_open);
     // Default All Tools: opening another PDF leaves the tool panel the user picked.
-    let mut app = PdfCraftApp::new();
+    let mut app = InsurCraftApp::new();
     app.set_option("language", "en").unwrap();
     app.set_option("tool", "export").unwrap();
     app.open_bytes("first.pdf", None, FIXTURE.to_vec()).unwrap();
@@ -695,7 +695,7 @@ fn opening_a_pdf_keeps_a_closed_left_panel_and_the_chosen_tool() {
     assert_eq!(app.left, LeftPanel::Tool("export"));
 }
 
-fn three_tab_harness() -> Harness<'static, PdfCraftApp> {
+fn three_tab_harness() -> Harness<'static, InsurCraftApp> {
     harness(|app| {
         for name in ["first.pdf", "middle.pdf", "last.pdf"] {
             app.open_bytes(name, None, FIXTURE.to_vec()).unwrap();
@@ -703,7 +703,7 @@ fn three_tab_harness() -> Harness<'static, PdfCraftApp> {
     })
 }
 
-fn close_named_tab(h: &mut Harness<'static, PdfCraftApp>, name: &str) {
+fn close_named_tab(h: &mut Harness<'static, InsurCraftApp>, name: &str) {
     // The close button has no separate accessible label. Its centre is defined by
     // chrome::tab relative to the actual accessible tab rectangle, not a viewport guess.
     let pos = h.get_by_label(name).rect().right_center() - egui::vec2(16.0, 0.0);
@@ -753,7 +753,7 @@ fn closing_the_last_active_tab_selects_the_previous_one_then_home() {
         assert!(app.session.get(ids[removed]).is_none());
     }
     assert_eq!(h.state().active, None);
-    h.get_by_label_contains("Welcome to PdfCraft");
+    h.get_by_label_contains("Welcome to InsurCraft");
 }
 
 #[test]
@@ -762,12 +762,12 @@ fn cancelling_then_discarding_an_earlier_dirty_tab_preserves_the_selected_docume
     let ids: Vec<_> = h.state().views.iter().map(|view| view.id).collect();
     h.get_by_label("first.pdf").click();
     h.run_steps(3);
-    assert!(h.state_mut().apply_edit(pdfcraft_engine::Edit::SetInfo { key: "Title".into(), value: "Unsaved title".into() }));
+    assert!(h.state_mut().apply_edit(insurcraft_engine::Edit::SetInfo { key: "Title".into(), value: "Unsaved title".into() }));
     h.run_steps(3);
     h.get_by_label("middle.pdf").click();
     h.run_steps(3);
     close_named_tab(&mut h, "first.pdf (edited)");
-    assert_eq!(h.state().close_request, Some(pdfcraft_ui_egui::CloseRequest::Tab(ids[0])));
+    assert_eq!(h.state().close_request, Some(insurcraft_ui_egui::CloseRequest::Tab(ids[0])));
     h.get_by_label("Cancel").click();
     h.run_steps(3);
     assert_eq!(h.state().views.len(), 3);

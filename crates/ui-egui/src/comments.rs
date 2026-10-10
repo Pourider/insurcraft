@@ -9,12 +9,12 @@
 //!   Reply, Set status, Colour and Delete.
 //! - **Composer:** the floating "Add a comment" card used for new notes, text boxes and edits.
 //!
-//! Everything is turned into `pdfcraft_engine::Edit`s, queued on the view as `pending_edit` and
+//! Everything is turned into `insurcraft_engine::Edit`s, queued on the view as `pending_edit` and
 //! applied by the app, so each change is one undo step.
 
 use egui::{Color32, CornerRadius, Pos2, Rect, Sense, Stroke, pos2, vec2};
-use pdfcraft_engine::{Edit, LineEnding, Markup, NewAnnotation, NoteIcon, ReviewState, Rgb, Shape, Style};
-use pdfcraft_render::{Annotation, DocInfo};
+use insurcraft_engine::{Edit, LineEnding, Markup, NewAnnotation, NoteIcon, ReviewState, Rgb, Shape, Style};
+use insurcraft_render::{Annotation, DocInfo};
 
 use crate::canvas::{DocView, PageXform};
 use crate::theme::{self, Tokens};
@@ -211,7 +211,7 @@ impl CommentTool {
             Self::Caret => Shape::Caret { rect: [0.0; 4] },
             Self::ReplaceText => Shape::TextMarkup { kind: Markup::StrikeOut, quads: Vec::new() },
             Self::Eraser => Shape::Ink { strokes: Vec::new() },
-            Self::Attach => Shape::Attachment { at: [0.0; 2], icon: pdfcraft_engine::AttachIcon::PushPin, file: String::new(), data: Vec::new() },
+            Self::Attach => Shape::Attachment { at: [0.0; 2], icon: insurcraft_engine::AttachIcon::PushPin, file: String::new(), data: Vec::new() },
         }
     }
 }
@@ -1180,7 +1180,7 @@ pub(crate) fn composer(ctx: &egui::Context, view: &mut DocView, info: &DocInfo, 
 
 /// A text box sized to its text (at most 300 pt wide), hanging from its top-left corner.
 pub fn text_box_rect(at: [f64; 2], text: &str, size: f64) -> [f64; 4] {
-    use pdfcraft_engine::annot_text::{text_width, wrap};
+    use insurcraft_engine::annot_text::{text_width, wrap};
     let pad = 2.0;
     let longest = text.lines().map(|l| text_width(l, size)).fold(0.0, f64::max);
     let w = (longest + 2.0 * pad + 4.0).clamp(40.0, 300.0);
@@ -1260,7 +1260,8 @@ pub(crate) fn context_menu(ui: &mut egui::Ui, view: &mut DocView, info: &DocInfo
                     }
                 });
             });
-            let thread: Vec<&pdfcraft_render::Annotation> = info.annotations.iter().filter(|r| a.name.is_some() && r.in_reply_to == a.name).collect();
+            let thread: Vec<&insurcraft_render::Annotation> =
+                info.annotations.iter().filter(|r| a.name.is_some() && r.in_reply_to == a.name).collect();
             let marked = crate::comments_panel::is_marked(&thread);
             if ui.add_enabled(allowed, egui::Button::new(tl!(if marked { "Remove checkmark" } else { "Mark with checkmark" }))).clicked() {
                 action = Some(CanvasAction::Edit(Box::new(Edit::MarkAnnotation { page, index, marked: !marked, author: prefs.author.clone() })));
@@ -1411,7 +1412,7 @@ mod tests {
     fn tools_round_trip_through_their_commands() {
         for t in ALL {
             assert_eq!(CommentTool::from_command(t.command()), Some(t));
-            assert!(pdfcraft_engine::commands::command(t.command()).is_some(), "{} is registered", t.command());
+            assert!(insurcraft_engine::commands::command(t.command()).is_some(), "{} is registered", t.command());
             assert!(icons::exists(t.icon()), "icon {}", t.icon());
             assert!(GROUPS[t.group()].contains(&t));
         }

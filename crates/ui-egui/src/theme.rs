@@ -119,7 +119,7 @@ impl Tokens {
     }
 
     pub fn get(ctx: &egui::Context) -> Self {
-        ctx.data(|d| d.get_temp::<Tokens>(egui::Id::new("pdfcraft-theme"))).unwrap_or_else(|| Self::for_kind(ThemeKind::Light))
+        ctx.data(|d| d.get_temp::<Tokens>(egui::Id::new("insurcraft-theme"))).unwrap_or_else(|| Self::for_kind(ThemeKind::Light))
     }
 
     pub fn dark(&self) -> bool {
@@ -144,7 +144,7 @@ pub const SYSTEM_FALLBACK: &str = "system-fallback";
 /// What [`install_fonts_for`] installs: [`font_definitions_for`], then, on desktop, one face
 /// already installed on this machine as the last fallback of every family. It only draws
 /// characters no embedded face has (an Arabic file name in a build without craft-fonts);
-/// `PDFCRAFT_SYSTEM_FONTS=0` leaves it out.
+/// `INSURCRAFT_SYSTEM_FONTS=0` leaves it out.
 pub fn installed_font_definitions(prefer_hans: bool) -> FontDefinitions {
     #[cfg_attr(target_arch = "wasm32", expect(unused_mut))]
     let mut fonts = font_definitions_for(prefer_hans);
@@ -180,8 +180,8 @@ pub fn font_definitions_for(prefer_hans: bool) -> FontDefinitions {
     add(&mut fonts, "JetBrainsMono", include_bytes!("../../../assets/fonts/JetBrainsMono-Regular.ttf"));
     fonts.families.entry(FontFamily::Proportional).or_default().insert(0, "Inter".to_owned());
     fonts.families.entry(FontFamily::Monospace).or_default().insert(0, "JetBrainsMono".to_owned());
-    // The same static bytes pdfcraft-fonts uses for Japanese/Chinese text in PDFs: one copy, not two.
-    for face in pdfcraft_fonts::ui_cjk_fonts(prefer_hans) {
+    // The same static bytes insurcraft-fonts uses for Japanese/Chinese text in PDFs: one copy, not two.
+    for face in insurcraft_fonts::ui_cjk_fonts(prefer_hans) {
         let name = face.name();
         // Japanese and Chinese faces have distinct family names, so no collision here.
         if !fonts.font_data.contains_key(&name) {
@@ -193,7 +193,7 @@ pub fn font_definitions_for(prefer_hans: bool) -> FontDefinitions {
     }
     // Arabic-script faces (file names, document titles) and Telugu faces (the Telugu interface,
     // file names) after the CJK ones; the ranges don't overlap.
-    for face in pdfcraft_fonts::ui_arabic_fonts().into_iter().chain(pdfcraft_fonts::ui_telugu_fonts()) {
+    for face in insurcraft_fonts::ui_arabic_fonts().into_iter().chain(insurcraft_fonts::ui_telugu_fonts()) {
         let name = face.name();
         if !fonts.font_data.contains_key(&name) {
             add(&mut fonts, &name, face.bytes);
@@ -228,7 +228,7 @@ pub fn apply(ctx: &egui::Context, kind: ThemeKind) {
     // egui must use the same theme for popup/menu styles as our custom chrome.
     ctx.set_theme(if kind == ThemeKind::Dark { egui::Theme::Dark } else { egui::Theme::Light });
     let t = Tokens::for_kind(kind);
-    ctx.data_mut(|d| d.insert_temp(egui::Id::new("pdfcraft-theme"), t));
+    ctx.data_mut(|d| d.insert_temp(egui::Id::new("insurcraft-theme"), t));
     let mut v = if t.dark() { Visuals::dark() } else { Visuals::light() };
     v.panel_fill = t.panel;
     v.window_fill = t.card;

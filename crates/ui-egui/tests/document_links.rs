@@ -3,7 +3,7 @@
 
 use egui_kittest::Harness;
 use egui_kittest::kittest::Queryable;
-use pdfcraft_ui_egui::{LinkOrigin, PdfCraftApp, PendingLink};
+use insurcraft_ui_egui::{InsurCraftApp, LinkOrigin, PendingLink};
 
 /// See `tests/view.rs`: WARP's shader JIT crashes when two devices compile at once on ARM64.
 static GPU: std::sync::Mutex<()> = std::sync::Mutex::new(());
@@ -41,9 +41,9 @@ fn fixture() -> Vec<u8> {
     out
 }
 
-fn harness() -> Harness<'static, PdfCraftApp> {
+fn harness() -> Harness<'static, InsurCraftApp> {
     let mut h = Harness::builder().with_size(egui::vec2(1400.0, 900.0)).build_eframe(|_cc| {
-        let mut app = PdfCraftApp::new();
+        let mut app = InsurCraftApp::new();
         app.set_option("language", "en").unwrap();
         app.open_bytes("links.pdf", None, fixture()).unwrap();
         app.set_option("left", "closed").unwrap();
@@ -55,7 +55,7 @@ fn harness() -> Harness<'static, PdfCraftApp> {
     h
 }
 
-fn click_at(h: &mut Harness<'static, PdfCraftApp>, at: egui::Pos2) {
+fn click_at(h: &mut Harness<'static, InsurCraftApp>, at: egui::Pos2) {
     h.hover_at(at);
     h.run_steps(2);
     h.drag_at(at);
@@ -64,18 +64,18 @@ fn click_at(h: &mut Harness<'static, PdfCraftApp>, at: egui::Pos2) {
 }
 
 /// Click the link on page 1, at the middle of its rectangle.
-fn click_link(h: &mut Harness<'static, PdfCraftApp>) {
+fn click_link(h: &mut Harness<'static, InsurCraftApp>) {
     let r = h.state().views[0].page_screen_rect(0).expect("page 1 on screen");
     let at = egui::pos2(r.min.x + r.width() * (150.0 / 300.0), r.min.y + r.height() * (1.0 - 325.0 / 400.0));
     click_at(h, at);
 }
 
-fn click_field(h: &mut Harness<'static, PdfCraftApp>, name: &str) {
+fn click_field(h: &mut Harness<'static, InsurCraftApp>, name: &str) {
     let at = {
         let s = h.state();
         let doc = s.session.get(s.views[0].id).unwrap();
         let f = doc.form.iter().find(|f| f.name == name).unwrap();
-        pdfcraft_ui_egui::forms_ui::field_screen_rect(&s.views[0], &doc.info, f, 0).expect("on screen").center()
+        insurcraft_ui_egui::forms_ui::field_screen_rect(&s.views[0], &doc.info, f, 0).expect("on screen").center()
     };
     click_at(h, at);
 }
@@ -196,7 +196,7 @@ fn an_email_link_cannot_attach_a_local_file() {
 }
 
 /// Ask to open `url` from a script and return the harness with the prompt showing.
-fn prompt_for(url: &str) -> Harness<'static, PdfCraftApp> {
+fn prompt_for(url: &str) -> Harness<'static, InsurCraftApp> {
     let mut h = harness();
     let id = h.state().views[0].id;
     let script = format!("app.launchURL({});", serde_json::to_string(url).unwrap());

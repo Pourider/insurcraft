@@ -1,8 +1,8 @@
 use std::sync::Arc;
 
-use pdfcraft_annot::{Markup, Meta, NewAnnotation, Shape, Style, add_annotation, add_reply, summaries};
-use pdfcraft_cos::{SaveOptions, write_full};
-use pdfcraft_forms::{NewField, add_field, fields, set_value};
+use insurcraft_annot::{Markup, Meta, NewAnnotation, Shape, Style, add_annotation, add_reply, summaries};
+use insurcraft_cos::{SaveOptions, write_full};
+use insurcraft_forms::{NewField, add_field, fields, set_value};
 
 use super::*;
 
@@ -40,7 +40,7 @@ fn blank() -> Document {
 fn filled() -> Document {
     let mut doc = blank();
     let meta = |id: &str| Meta { date: Some("D:20261002120000Z".into()), id: id.into() };
-    let note = Shape::Note { at: [100.0, 500.0], icon: pdfcraft_annot::NoteIcon::Comment };
+    let note = Shape::Note { at: [100.0, 500.0], icon: insurcraft_annot::NoteIcon::Comment };
     add_annotation(
         &mut doc,
         &NewAnnotation {
@@ -185,7 +185,7 @@ fn threads(doc: &Document) -> Vec<(Option<String>, Option<String>, Option<String
 fn fdf_keeps_replies_and_review_status_on_their_note() {
     let mut src = blank();
     let meta = |id: &str| Meta { date: Some("D:20261002120000Z".into()), id: id.into() };
-    let note = Shape::Note { at: [100.0, 100.0], icon: pdfcraft_annot::NoteIcon::Comment };
+    let note = Shape::Note { at: [100.0, 100.0], icon: insurcraft_annot::NoteIcon::Comment };
     add_annotation(
         &mut src,
         &NewAnnotation { page: 1, style: Style::default_for(&note), shape: note, contents: "Literal Note".into(), author: "Alpha".into() },
@@ -195,7 +195,7 @@ fn fdf_keeps_replies_and_review_status_on_their_note() {
     let index = summaries(&src).iter().find(|s| s.subtype == "Text").map(|s| s.index).unwrap();
     add_reply(&mut src, 1, index, "Reply One", "Beta", &meta("one")).unwrap();
     add_reply(&mut src, 1, index, "Reply Two", "Gamma", &meta("two")).unwrap();
-    pdfcraft_annot::set_review_state(&mut src, 1, index, pdfcraft_annot::ReviewState::Accepted, "Review", &meta("status")).unwrap();
+    insurcraft_annot::set_review_state(&mut src, 1, index, insurcraft_annot::ReviewState::Accepted, "Review", &meta("status")).unwrap();
     let want = threads(&src);
     assert_eq!(want.iter().filter(|t| t.1.as_deref() == Some("note")).count(), 3, "{want:?}");
 
@@ -309,7 +309,7 @@ fn data_files_merge_into_a_spreadsheet() {
     let fdf = export_fdf(&src, false, true, "form.pdf");
     let mut other = blank();
     set_value(&mut other, "Name", &FieldValue::Text("Grace \"Amazing\" Hopper, RADM".into())).unwrap();
-    let pdf = pdfcraft_cos::write_full(&other, &Default::default()).unwrap();
+    let pdf = insurcraft_cos::write_full(&other, &Default::default()).unwrap();
     let rows: Vec<_> = [xfdf.as_bytes(), &fdf[..], &pdf[..]].iter().map(|b| data_values(b).unwrap()).collect();
     assert_eq!(rows[0], rows[1], "XFDF and FDF carry the same values");
     let csv = merge_csv(&rows);

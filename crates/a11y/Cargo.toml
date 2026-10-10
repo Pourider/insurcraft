@@ -1,5 +1,5 @@
 [package]
-name = "pdfcraft-a11y"
+name = "insurcraft-a11y"
 description = "Accessibility: the Accessibility Checker (32 rules), its report and fixes"
 version.workspace = true
 edition.workspace = true
@@ -11,8 +11,8 @@ repository.workspace = true
 workspace = true
 
 [dependencies]
-pdfcraft-cos = { workspace = true }
-pdfcraft-model = { workspace = true }
-pdfcraft-content = { workspace = true }
-pdfcraft-fonts = { workspace = true }
+insurcraft-cos = { workspace = true }
+insurcraft-model = { workspace = true }
+insurcraft-content = { workspace = true }
+insurcraft-fonts = { workspace = true }
 thiserror.workspace = true

@@ -1,4 +1,4 @@
-# pdfcraft-create
+# insurcraft-create
 
 Layer L4. Create a PDF (Acrobat's Create a PDF tool), execution plan M10.2:
 
@@ -15,4 +15,4 @@ Layer L4. Create a PDF (Acrobat's Create a PDF tool), execution plan M10.2:
   `from_images`. The largest page side is still capped at 14,400 points;
 - `from_text(text, …)`: plain text set in Helvetica, wrapped and paginated.
 
-Every function returns a `pdfcraft_cos::Document`; the caller writes it.
+Every function returns a `insurcraft_cos::Document`; the caller writes it.

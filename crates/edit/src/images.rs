@@ -3,8 +3,8 @@
 //! `q … cm … Q` with the extra transform), replace (it draws another XObject in the same place),
 //! or delete. Only the stream that draws it is rewritten, as a new object.
 
-use pdfcraft_content::{Matrix, Op, parse, serialize_ops};
-use pdfcraft_cos::{Dict, Document, ObjRef, Object, Stream};
+use insurcraft_content::{Matrix, Op, parse, serialize_ops};
+use insurcraft_cos::{Dict, Document, ObjRef, Object, Stream};
 
 use crate::EditError;
 
@@ -48,8 +48,8 @@ fn streams(doc: &Document, page: &Dict) -> Vec<(Object, Vec<u8>)> {
         .collect()
 }
 
-fn page_of(doc: &Document, page: usize) -> Result<pdfcraft_model::Page, EditError> {
-    pdfcraft_model::pages(doc).into_iter().nth(page).ok_or(EditError::NoSuchPage(page))
+fn page_of(doc: &Document, page: usize) -> Result<insurcraft_model::Page, EditError> {
+    insurcraft_model::pages(doc).into_iter().nth(page).ok_or(EditError::NoSuchPage(page))
 }
 
 fn xobjects(doc: &Document, page: &Dict) -> Dict {
@@ -271,7 +271,7 @@ pub fn change_image(doc: &mut Document, page: usize, index: usize, change: &Imag
             if !m.0.iter().all(|v| v.is_finite()) {
                 return Err(EditError::Invalid("the image transform is too large".into()));
             }
-            vec![Op::new("q", vec![]), Op::new("cm", m.0.iter().map(|v| pdfcraft_content::num(*v)).collect()), original, Op::new("Q", vec![])]
+            vec![Op::new("q", vec![]), Op::new("cm", m.0.iter().map(|v| insurcraft_content::num(*v)).collect()), original, Op::new("Q", vec![])]
         }
         ImageChange::Replace(r) => {
             if img.is_form {

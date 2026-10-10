@@ -4,8 +4,8 @@
 //! Delete to remove it. Each change is one undoable engine edit.
 
 use egui::{Color32, CornerRadius, Pos2, Rect, Stroke};
-use pdfcraft_engine::{Added, AddedContent, AddedText, Edit, FontFamily, TextAlign};
-use pdfcraft_render::DocInfo;
+use insurcraft_engine::{Added, AddedContent, AddedText, Edit, FontFamily, TextAlign};
+use insurcraft_render::DocInfo;
 
 use crate::canvas::{DocView, PageXform};
 use crate::theme::Tokens;
@@ -24,7 +24,7 @@ pub(crate) fn undrawable(d: &TextDraft, memo: &UndrawableMemo) -> Option<char> {
     {
         return *c;
     }
-    let c = pdfcraft_engine::first_undrawable(&t);
+    let c = insurcraft_engine::first_undrawable(&t);
     *memo.borrow_mut() = Some((t, c));
     c
 }
@@ -467,7 +467,7 @@ pub(crate) fn hint(ui: &mut egui::Ui, t: &Tokens) {
     ui.add_space(4.0);
 }
 
-impl crate::PdfCraftApp {
+impl crate::InsurCraftApp {
     /// Pick an image file for the active document, read it, and call `then` with its name and
     /// bytes: now when `save_override` answers (tests and automation never see a native dialog),
     /// otherwise on a later frame, and only if that document is still the active one.
@@ -508,7 +508,7 @@ impl crate::PdfCraftApp {
             app.apply_edit(Edit::EditPageImage {
                 page,
                 index,
-                change: pdfcraft_engine::ImageEdit::Replace { name, bytes: std::sync::Arc::new(bytes) },
+                change: insurcraft_engine::ImageEdit::Replace { name, bytes: std::sync::Arc::new(bytes) },
             });
         });
         #[cfg(target_arch = "wasm32")]
@@ -572,18 +572,18 @@ impl crate::PdfCraftApp {
 
 /// What the image tools ask for.
 pub(crate) enum ImageAction {
-    Update(pdfcraft_engine::AddedContent),
+    Update(insurcraft_engine::AddedContent),
     Replace,
 }
 
 /// Edit image: rotate, flip, crop, replace (shown while an added image is selected).
-pub(crate) fn image_panel(ui: &mut egui::Ui, t: &Tokens, img: &pdfcraft_engine::AddedImage) -> Option<ImageAction> {
+pub(crate) fn image_panel(ui: &mut egui::Ui, t: &Tokens, img: &insurcraft_engine::AddedImage) -> Option<ImageAction> {
     let mut out = None;
     widgets::section_title(ui, tl!("Edit image"));
     ui.horizontal(|ui| {
         let mut i = img.clone();
         let r = i.rect;
-        let turn = |i: &mut pdfcraft_engine::AddedImage, k: u8| {
+        let turn = |i: &mut insurcraft_engine::AddedImage, k: u8| {
             i.rotation = (i.rotation + k) % 4;
             // The box turns with the picture, around its centre.
             let (cx, cy, w, h) = ((r[0] + r[2]) / 2.0, (r[1] + r[3]) / 2.0, r[2] - r[0], r[3] - r[1]);

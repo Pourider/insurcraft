@@ -1,11 +1,21 @@
+InsurCraft
+Copyright (c) 2026 Insur S.A. and the InsurCraft contributors.
+
+InsurCraft is a modified version of PdfCraft (https://github.com/storytold/pdfcraft), forked from
+commit 5d590604867fdac7ed71c555c40477ae3331a60a on 2026-10-10. It is based on PdfCraft by the
+ArtCraft team. InsurCraft is not made, sponsored or endorsed by the ArtCraft Team.
+
 PdfCraft
 Copyright (c) 2026 ArtCraft Team and the PdfCraft contributors.
-Licensed under the MIT License or the Apache License, Version 2.0, at your option
+
+Both are licensed under the MIT License or the Apache License, Version 2.0, at your option
 (LICENSE-MIT, LICENSE-APACHE).
 
-The ArtCraft name, wordmark and logos in docs/brand/ are trademarks of the ArtCraft Team. They are
-not open source and are not covered by the license above; their terms are in
-docs/brand/LICENSE-brand.txt.
+Changes made in InsurCraft: the product is renamed (PdfCraft -> InsurCraft, app id
+pe.insur.insurcraft), the ArtCraft name, wordmark and logos were removed as PdfCraft's brand
+licence requires for modified versions, the app icon was replaced with new InsurCraft artwork,
+and the community links now point to InsurCraft's own GitHub repository. File-level changes are
+in the git history.
 
 Third-party material
 

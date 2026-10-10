@@ -6,7 +6,7 @@ that placement. The context menu also rotates or flips it. Changes support undo 
 survive saving/reopening.
 
 PDF figures are not always bitmap images. Imported diagrams often use a **Form XObject**,
-which packages text, vector paths, and nested images into one object. PdfCraft selects
+which packages text, vector paths, and nested images into one object. InsurCraft selects
 this object using its `BBox` and optional `Matrix` and edits it as a whole. Its original
 content, resources, clipping box, and transparency settings remain intact. Moving or
 deleting one use of a shared figure does not alter its other placements or pages.

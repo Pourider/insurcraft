@@ -1,4 +1,4 @@
-//! pdfcraft-annot — comments (annotations), ISO 32000-2 §12.5, execution plan M5.1–M5.3.
+//! insurcraft-annot — comments (annotations), ISO 32000-2 §12.5, execution plan M5.1–M5.3.
 //!
 //! Builders for the comment types Acrobat's commenting tools create (sticky note, highlight,
 //! underline, strikethrough, squiggly, rectangle, oval, line/arrow, freehand ink, text box),
@@ -6,15 +6,15 @@
 //! change its text, recolour, move, resize and delete.
 //!
 //! Addressing: a comment is `(page, index)`, its position in the page's `/Annots` array, which
-//! is what `pdfcraft_render::Annotation::index` reports. Inline annotation dictionaries are
+//! is what `insurcraft_render::Annotation::index` reports. Inline annotation dictionaries are
 //! promoted to indirect objects when they are edited (replies need a reference to point at).
 //!
-//! Every edit mutates a `pdfcraft_cos::Document` (copy-on-write); callers snapshot it first
+//! Every edit mutates a `insurcraft_cos::Document` (copy-on-write); callers snapshot it first
 //! for undo. Keys we do not understand are left alone.
 
 #![deny(clippy::unwrap_used, clippy::expect_used, clippy::panic, clippy::unimplemented, clippy::todo, clippy::unreachable)]
 
-use pdfcraft_cos::{Dict, Document, ObjRef, Object, PdfString};
+use insurcraft_cos::{Dict, Document, ObjRef, Object, PdfString};
 
 pub mod appearance;
 pub mod links;
@@ -35,7 +35,7 @@ pub enum AnnotError {
     #[error("{0} comments can't be restyled yet (their appearance can't be regenerated)")]
     Unsupported(String),
     #[error("{0}")]
-    Cos(#[from] pdfcraft_cos::CosError),
+    Cos(#[from] insurcraft_cos::CosError),
 }
 
 pub type Rgb = [f64; 3];
@@ -101,7 +101,7 @@ pub enum FillMark {
 }
 
 impl FillMark {
-    /// The `/Name` of the stamp PdfCraft draws for it.
+    /// The `/Name` of the stamp InsurCraft draws for it.
     pub fn name(self) -> &'static str {
         match self {
             FillMark::Check => "PCCheck",
@@ -121,7 +121,7 @@ impl FillMark {
     }
 }
 
-/// The stamps of Acrobat's stamp palette (drawn in PdfCraft's own style).
+/// The stamps of Acrobat's stamp palette (drawn in InsurCraft's own style).
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 pub enum StampKind {
     // Standard business.
@@ -717,7 +717,7 @@ fn annot_dict(doc: &Document, r: ObjRef) -> Dict {
 
 /// A Fill & Sign item: typed text, a check/cross/dot/line, or a typed, drawn or image signature.
 ///
-/// New items carry `/PCFillSign`. Older files are recognised from the dictionaries PdfCraft
+/// New items carry `/PCFillSign`. Older files are recognised from the dictionaries InsurCraft
 /// already writes (`/IT /FreeTextTypeWriter`, stamp `/Name`, drawn ink whose subject is
 /// "Signature").
 pub fn is_fill_sign(doc: &Document, d: &Dict) -> bool {
@@ -1079,7 +1079,7 @@ pub fn add_annotation(doc: &mut Document, new: &NewAnnotation, meta: &Meta) -> R
         Shape::Stamp { stamp, by, .. } => {
             d.set(b"C".to_vec(), rgb(style.color));
             d.set(b"Name".to_vec(), Object::name(stamp.name()));
-            // Marks the stamp as drawn by PdfCraft: other stamps with standard names keep
+            // Marks the stamp as drawn by InsurCraft: other stamps with standard names keep
             // their own artwork.
             d.set(b"PCStamp".to_vec(), Object::Bool(true));
             if let Some(b) = by {
@@ -1101,7 +1101,7 @@ pub fn add_annotation(doc: &mut Document, new: &NewAnnotation, meta: &Meta) -> R
             // An image signature's rectangle is in user space; on a turned page its appearance is
             // turned back (see `appearance::build`), so it reads upright as displayed.
             if *image && matches!(clean.as_str(), "Signature" | "Initials") {
-                let turn = pdfcraft_model::pages(doc).get(new.page).map_or(0, |p| p.rotation(doc));
+                let turn = insurcraft_model::pages(doc).get(new.page).map_or(0, |p| p.rotation(doc));
                 if turn != 0 {
                     d.set(b"PCPictureRotate".to_vec(), Object::Int(turn));
                 }
@@ -1156,7 +1156,7 @@ pub fn add_annotation(doc: &mut Document, new: &NewAnnotation, meta: &Meta) -> R
             let mut ef = Dict::new();
             ef.set(b"Type".to_vec(), Object::name("EmbeddedFile"));
             ef.set(b"Params".to_vec(), Object::Dict(params));
-            let ef = doc.add(Object::Stream(pdfcraft_cos::Stream::flate(ef, data)));
+            let ef = doc.add(Object::Stream(insurcraft_cos::Stream::flate(ef, data)));
             let mut efd = Dict::new();
             efd.set(b"F".to_vec(), Object::Ref(ef));
             efd.set(b"UF".to_vec(), Object::Ref(ef));
@@ -1495,7 +1495,7 @@ fn reply(
     fd.set(b"Type".to_vec(), Object::name("XObject"));
     fd.set(b"Subtype".to_vec(), Object::name("Form"));
     fd.set(b"BBox".to_vec(), num_array(&[0.0, 0.0, 0.0, 0.0]));
-    let ap = doc.add(Object::Stream(pdfcraft_cos::Stream::from_raw(fd, Vec::new())));
+    let ap = doc.add(Object::Stream(insurcraft_cos::Stream::from_raw(fd, Vec::new())));
     let mut apd = Dict::new();
     apd.set(b"N".to_vec(), Object::Ref(ap));
     d.set(b"AP".to_vec(), Object::Dict(apd));
@@ -1765,7 +1765,7 @@ fn pair_points(d: &Dict, key: &[u8]) -> Option<Vec<[f64; 2]>> {
 // ── reading ─────────────────────────────────────────────────────────────────────────────────
 
 /// One comment as the viewer lists it (the same fields and rules as
-/// `pdfcraft_render::Annotation`), read straight from the object graph. The engine uses it to
+/// `insurcraft_render::Annotation`), read straight from the object graph. The engine uses it to
 /// refresh the comment list after a comment edit without re-inspecting the whole document.
 #[derive(Clone, Debug, PartialEq)]
 pub struct Summary {

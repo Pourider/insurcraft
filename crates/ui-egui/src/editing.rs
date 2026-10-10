@@ -1,17 +1,17 @@
 //! Editing glue: apply engine edits from the UI, undo/redo, save/save-as, and the
 //! "save changes?" prompt when closing a tab or quitting with unsaved edits.
 
-use pdfcraft_engine::Edit;
-use pdfcraft_platform::staging::{StagingName, create_staging, staging_suffixes};
+use insurcraft_engine::Edit;
+use insurcraft_platform::staging::{StagingName, create_staging, staging_suffixes};
 
-use crate::PdfCraftApp;
+use crate::InsurCraftApp;
 
 /// What the user was doing when we asked whether to save.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum CloseRequest {
     /// Close this document's tab. By id, not tab index: tabs can close and shift while a save
     /// panel is open.
-    Tab(pdfcraft_engine::DocId),
+    Tab(insurcraft_engine::DocId),
     /// Quit the application once every dirty document is resolved.
     Quit,
     /// File ▸ Close all: like Quit, but the application stays open.
@@ -27,7 +27,7 @@ pub enum SaveTarget {
     As,
 }
 
-impl PdfCraftApp {
+impl InsurCraftApp {
     /// Apply an edit to the active document. Returns `true` on success; failures are shown.
     pub fn apply_edit(&mut self, edit: Edit) -> bool {
         let Some((i, id)) = self.active_ids() else { return false };
@@ -55,7 +55,7 @@ impl PdfCraftApp {
                     // A stroke drawn with the pen stays unselected, so the selection box and
                     // author popup don't sit over the next stroke (#429).
                     Edit::AddAnnotation(a)
-                        if matches!(a.shape, pdfcraft_engine::Shape::Ink { .. })
+                        if matches!(a.shape, insurcraft_engine::Shape::Ink { .. })
                             && self.quick_tool == crate::QuickTool::Comment(crate::comments::CommentTool::Ink) =>
                     {
                         view.comments.selected = None;
@@ -67,7 +67,7 @@ impl PdfCraftApp {
                         view.comments.reveal = true;
                         // A new highlight opens its note for typing straight away, as in Acrobat,
                         // unless a note typed into another card is still unsaved.
-                        if let (pdfcraft_engine::Shape::TextMarkup { kind: pdfcraft_engine::Markup::Highlight, .. }, Some(n)) = (&a.shape, newest)
+                        if let (insurcraft_engine::Shape::TextMarkup { kind: insurcraft_engine::Markup::Highlight, .. }, Some(n)) = (&a.shape, newest)
                             && a.contents.is_empty()
                             && view.comments.editing.as_ref().is_none_or(|(_, _, text)| text.is_empty())
                         {
@@ -265,7 +265,7 @@ impl PdfCraftApp {
     /// [`Self::commit_form_typing`] for document `id`, which may not be the active tab (a save
     /// panel answering later, Close All). If its tab has typing or a queued edit, the tab is
     /// brought forward first, so the commit and any field scripts act on that document.
-    pub(crate) fn commit_typing_in(&mut self, id: pdfcraft_engine::DocId) -> bool {
+    pub(crate) fn commit_typing_in(&mut self, id: insurcraft_engine::DocId) -> bool {
         let Some(i) = self.views.iter().position(|v| v.id == id) else { return true };
         // Added text the standard fonts can't draw can't be saved: show it rather than drop it.
         // Its page is brought into view, so the text, the warning and Discard are on screen.
@@ -297,7 +297,7 @@ impl PdfCraftApp {
 
     /// The Fill & Sign type box commits on click-away. Save does that first, so the text is in
     /// the file (and can be flattened) instead of being left on the screen.
-    fn commit_open_fill_text(&mut self, id: pdfcraft_engine::DocId) -> bool {
+    fn commit_open_fill_text(&mut self, id: insurcraft_engine::DocId) -> bool {
         let Some(i) = self.views.iter().position(|v| v.id == id) else { return true };
         let Some(tb) = self.views[i].fill_text.clone() else { return true };
         let text = tb.text.trim().to_string();
@@ -321,7 +321,7 @@ impl PdfCraftApp {
 
     /// When the preference is on, bake Fill & Sign marks before the bytes are written.
     /// Returns false when the document is not allowed to change (nothing is written).
-    fn flatten_fill_sign_for_save(&mut self, id: pdfcraft_engine::DocId) -> bool {
+    fn flatten_fill_sign_for_save(&mut self, id: insurcraft_engine::DocId) -> bool {
         if !self.flatten_fill_sign_on_save {
             return true;
         }
@@ -434,7 +434,7 @@ impl PdfCraftApp {
 
     /// Write document `id` to `dest` and make it the document's file. Returns `true` if written.
     #[cfg(not(target_arch = "wasm32"))]
-    fn save_doc_to(&mut self, id: pdfcraft_engine::DocId, dest: &str) -> bool {
+    fn save_doc_to(&mut self, id: insurcraft_engine::DocId, dest: &str) -> bool {
         // Save As answers on a later frame: commit what was typed meanwhile, too (#166), even
         // if another tab is active by then.
         if !self.commit_typing_in(id) || !self.flatten_fill_sign_for_save(id) {
@@ -674,7 +674,7 @@ pub(crate) fn download(name: &str, bytes: &[u8]) -> Result<(), String> {
     Ok(())
 }
 
-impl PdfCraftApp {
+impl InsurCraftApp {
     /// Carry out a Bookmarks-panel action as an undoable edit.
     pub fn bookmark_action(&mut self, action: crate::panels::BmAction) {
         use crate::panels::BmAction as A;
@@ -726,7 +726,7 @@ impl PdfCraftApp {
     }
 }
 
-fn bookmark_at<'a>(items: &'a [pdfcraft_render::OutlineItem], path: &[usize]) -> Option<&'a pdfcraft_render::OutlineItem> {
+fn bookmark_at<'a>(items: &'a [insurcraft_render::OutlineItem], path: &[usize]) -> Option<&'a insurcraft_render::OutlineItem> {
     let (first, rest) = path.split_first()?;
     let item = items.get(*first)?;
     if rest.is_empty() { Some(item) } else { bookmark_at(&item.children, rest) }
@@ -735,19 +735,19 @@ fn bookmark_at<'a>(items: &'a [pdfcraft_render::OutlineItem], path: &[usize]) ->
 #[cfg(test)]
 mod tests {
     use super::{write_atomically, write_atomically_with};
-    use pdfcraft_platform::staging::{STAGING_ATTEMPTS, staging_suffixes};
+    use insurcraft_platform::staging::{STAGING_ATTEMPTS, staging_suffixes};
     use std::path::{Path, PathBuf};
 
     /// A fresh, empty folder for one staging test.
     fn staging_dir(test: &str) -> PathBuf {
-        let dir = std::env::temp_dir().join(format!("pdfcraft-ui-staging-{}-{test}", std::process::id()));
+        let dir = std::env::temp_dir().join(format!("insurcraft-ui-staging-{}-{test}", std::process::id()));
         let _ = std::fs::remove_dir_all(&dir);
         std::fs::create_dir_all(&dir).unwrap();
         dir
     }
 
     fn staged(dir: &Path, suffix: u64) -> PathBuf {
-        dir.join(format!(".out.pdf.pdfcraft-{suffix:016x}.tmp"))
+        dir.join(format!(".out.pdf.insurcraft-{suffix:016x}.tmp"))
     }
 
     fn read(p: &Path) -> String {
@@ -897,7 +897,7 @@ mod tests {
 mod revert_draft_tests {
     use super::*;
     use crate::forms_ui::Focus;
-    use pdfcraft_engine::FieldValue;
+    use insurcraft_engine::FieldValue;
 
     fn focus(text: &str) -> Focus {
         Focus {
@@ -912,13 +912,13 @@ mod revert_draft_tests {
         }
     }
 
-    fn app() -> PdfCraftApp {
-        let mut app = PdfCraftApp::new();
+    fn app() -> InsurCraftApp {
+        let mut app = InsurCraftApp::new();
         app.open_bytes("source.pdf", None, include_bytes!("../tests/data/form.pdf").to_vec()).unwrap();
         app
     }
 
-    fn queue_draft(app: &mut PdfCraftApp, index: usize, text: &str) {
+    fn queue_draft(app: &mut InsurCraftApp, index: usize, text: &str) {
         app.views[index].forms.focus = Some(focus(text));
         let form = app.session.get(app.views[index].id).unwrap().form.clone();
         crate::forms_ui::commit(&mut app.views[index], &form);
@@ -981,6 +981,6 @@ mod revert_draft_tests {
             matches!(&app.views[0].pending_edit, Some(Edit::SetFieldValue { name, value: FieldValue::Text(text) }) if name == "name" && text == "Queued draft")
         );
         assert_eq!(app.active_ids(), Some((0, source)));
-        assert_eq!(app.toast.as_ref().unwrap().0, pdfcraft_engine::EditError::NoDocument.to_string());
+        assert_eq!(app.toast.as_ref().unwrap().0, insurcraft_engine::EditError::NoDocument.to_string());
     }
 }

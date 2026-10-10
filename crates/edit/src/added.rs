@@ -10,8 +10,8 @@
 
 use std::collections::HashMap;
 
-use pdfcraft_cos::{Dict, Document, ObjRef, Object, PdfString, Stream};
-use pdfcraft_fonts::{GlyphError, GlyphOutline, ShapedCluster, arabic_glyph, helvetica_width, literal, shape_arabic, win_ansi};
+use insurcraft_cos::{Dict, Document, ObjRef, Object, PdfString, Stream};
+use insurcraft_fonts::{GlyphError, GlyphOutline, ShapedCluster, arabic_glyph, helvetica_width, literal, shape_arabic, win_ansi};
 use unicode_bidi::{Level, ParagraphBidiInfo};
 
 use crate::{EditError, check, contents, n, page_list, place_tagged};
@@ -137,8 +137,8 @@ impl AddedImage {
 
     /// The matrix from image space (the unit square) to display space: crop, flip, rotate,
     /// then fill the box.
-    fn matrix(&self) -> pdfcraft_content::Matrix {
-        use pdfcraft_content::Matrix as M;
+    fn matrix(&self) -> insurcraft_content::Matrix {
+        use insurcraft_content::Matrix as M;
         let [l, b, r, t] = self.crop.map(|v| v.clamp(0.0, 0.45));
         let (cw, ch) = ((1.0 - l - r).max(0.05), (1.0 - b - t).max(0.05));
         let mut m = M([1.0 / cw, 0.0, 0.0, 1.0 / ch, -l / cw, -b / ch]);
@@ -254,19 +254,19 @@ fn is_arabic(c: char) -> bool {
 /// face to draw it). Page-content tools refuse such text; the Add-text editor keeps it open.
 pub fn first_undrawable(t: &AddedText) -> Option<char> {
     // Arabic that nothing can draw: there's no face, or the face lacks it.
-    if let Some(c) = t.text.chars().find(|c| shaped_arabic(*c) && !pdfcraft_fonts::arabic_has(*c)) {
+    if let Some(c) = t.text.chars().find(|c| shaped_arabic(*c) && !insurcraft_fonts::arabic_has(*c)) {
         return Some(c);
     }
-    if pdfcraft_fonts::document_arabic_font().is_none() || !t.text.chars().any(is_arabic) {
+    if insurcraft_fonts::document_arabic_font().is_none() || !t.text.chars().any(is_arabic) {
         // Drawn line by line in the item's standard font (`\n` splits lines). Without the face
         // that is also how `draw` redraws an existing item, so it's checked that way.
-        return t.text.split('\n').find_map(pdfcraft_fonts::first_non_win_ansi);
+        return t.text.split('\n').find_map(insurcraft_fonts::first_non_win_ansi);
     }
     // What `arabic_layout` leaves to the standard font, exactly as `draw_arabic` splits it.
     wrapped(t).into_iter().find_map(|(line, rtl)| {
         let (pieces, _) = arabic_layout(t, &line, rtl).ok()?;
         pieces.iter().find_map(|p| match p {
-            Piece::Latin(s) => pdfcraft_fonts::first_non_win_ansi(s),
+            Piece::Latin(s) => insurcraft_fonts::first_non_win_ansi(s),
             Piece::Arabic(_) => None,
         })
     })
@@ -324,7 +324,7 @@ fn arabic_layout(t: &AddedText, line: &str, rtl: bool) -> Result<(Vec<Piece>, f6
         // shaper then mirrors. Latin text (and what the face lacks) keeps the item's font.
         let mut segments: Vec<(bool, String)> = Vec::new();
         for c in text.chars().filter(|c| !is_bidi_control(*c)) {
-            let arabic = is_arabic(c) || (run_rtl && !c.is_alphanumeric() && pdfcraft_fonts::arabic_has(c));
+            let arabic = is_arabic(c) || (run_rtl && !c.is_alphanumeric() && insurcraft_fonts::arabic_has(c));
             match segments.last_mut() {
                 Some((kind, s)) if *kind == arabic => s.push(c),
                 _ => segments.push((arabic, c.to_string())),
@@ -361,7 +361,7 @@ fn arabic_width(t: &AddedText, s: &str, rtl: bool) -> f64 {
 
 fn arabic_error(e: GlyphError, text: &str) -> EditError {
     EditError::Invalid(match e {
-        GlyphError::NoFont => "Arabic text needs PdfCraft's Arabic font, which this build doesn't include \
+        GlyphError::NoFont => "Arabic text needs InsurCraft's Arabic font, which this build doesn't include \
                                (to build it in, set CRAFT_FONTS_DIR to a craft-fonts checkout that has an Arab face)"
             .into(),
         GlyphError::Missing => format!("the Arabic font can't show \"{text}\""),
@@ -538,7 +538,7 @@ fn type3_arabic(doc: &mut Document, clusters: &[&ShapedCluster], outlines: &Hash
     }
     cmap.push_str("endcmap\nCMapName currentdict /CMap defineresource pop\nend\nend\n");
     let cmap = doc.add(Object::Stream(Stream::flate(Dict::new(), cmap.as_bytes())));
-    let family = pdfcraft_fonts::document_arabic_font().map_or("Arabic", |f| f.family);
+    let family = insurcraft_fonts::document_arabic_font().map_or("Arabic", |f| f.family);
     let mut descriptor = Dict::new();
     descriptor.set(b"Type".to_vec(), Object::name("FontDescriptor"));
     descriptor.set(b"FontName".to_vec(), Object::name(&family.replace(' ', "")));
@@ -585,7 +585,7 @@ fn draw(doc: &mut Document, c: &Content, view: [f64; 6], taken: &Dict, existing:
             }
             let mut fonts = Dict::new();
             fonts.set(name.clone().into_bytes(), Object::Dict(font));
-            if t.text.chars().any(is_arabic) && (pdfcraft_fonts::document_arabic_font().is_some() || !existing) {
+            if t.text.chars().any(is_arabic) && (insurcraft_fonts::document_arabic_font().is_some() || !existing) {
                 draw_arabic(doc, t, &name, taken, &mut fonts, &mut out)?;
                 res.set(b"Font".to_vec(), Object::Dict(fonts));
                 out.extend_from_slice(b"Q\n");
@@ -747,8 +747,8 @@ fn validate(c: &Content) -> Result<(), EditError> {
             // Without the Arabic face, `draw` decides for the Arabic letters themselves (#403): a new
             // item is refused with what's missing, and one that already holds Arabic stays movable.
             // Everything else in it is drawn in the standard font, so it still has to fit.
-            let undrawable = if t.text.chars().any(shaped_arabic) && pdfcraft_fonts::document_arabic_font().is_none() {
-                t.text.split('\n').find_map(|line| line.chars().find(|c| !shaped_arabic(*c) && !pdfcraft_fonts::win_ansi_encodable(*c)))
+            let undrawable = if t.text.chars().any(shaped_arabic) && insurcraft_fonts::document_arabic_font().is_none() {
+                t.text.split('\n').find_map(|line| line.chars().find(|c| !shaped_arabic(*c) && !insurcraft_fonts::win_ansi_encodable(*c)))
             } else {
                 first_undrawable(t)
             };
@@ -841,7 +841,7 @@ pub fn list_added(doc: &Document) -> Vec<Added> {
                     .get(b"UserUnit")
                     .and_then(Object::as_f64)
                     .filter(|u| u.is_finite() && *u >= 1.0)
-                    .map_or(1.0, |u| u.min(pdfcraft_model::MAX_USER_UNIT));
+                    .map_or(1.0, |u| u.min(insurcraft_model::MAX_USER_UNIT));
                 out.push(Added { page: pi, obj: r, content: c.scaled(p.user_unit(doc) / written) });
             }
         }

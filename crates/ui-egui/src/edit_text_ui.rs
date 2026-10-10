@@ -5,8 +5,8 @@
 //! its proportions), right-click for rotate, flip, replace, save and delete; Delete removes it.
 
 use egui::{Color32, CornerRadius, FontFamily, FontId, Pos2, Rect, Stroke};
-use pdfcraft_engine::Edit;
-use pdfcraft_render::DocInfo;
+use insurcraft_engine::Edit;
+use insurcraft_render::DocInfo;
 
 use crate::canvas::{DocView, PageXform};
 
@@ -31,8 +31,8 @@ pub struct LineEditor {
     size: f32,
     focus: bool,
     /// The Format text panel's values, and what the paragraph had (to send only changes).
-    pub look: pdfcraft_engine::AddedText,
-    look0: pdfcraft_engine::AddedText,
+    pub look: insurcraft_engine::AddedText,
+    look0: insurcraft_engine::AddedText,
     /// Underline, line spacing (× size; 0 = the paragraph's own), character spacing (pt) and
     /// horizontal scale (%), and what they were.
     pub extras: Extras,
@@ -88,9 +88,9 @@ impl LineEditor {
     }
 
     /// The formatting the panel changed.
-    pub fn style(&self) -> pdfcraft_engine::BlockStyle {
+    pub fn style(&self) -> insurcraft_engine::BlockStyle {
         let (l, o) = (&self.look, &self.look0);
-        pdfcraft_engine::BlockStyle {
+        insurcraft_engine::BlockStyle {
             family: (l.family != o.family || l.bold != o.bold || l.italic != o.italic).then_some((l.family, l.bold, l.italic)),
             size: (l.size != o.size).then_some(l.size),
             color: (l.color != o.color).then_some(l.color),
@@ -113,15 +113,15 @@ impl LineEditor {
     }
 
     /// Adopt the rewritten paragraph's current geometry before the next overlay frame.
-    pub(crate) fn refresh_source(&mut self, block: &pdfcraft_engine::TextBlock) {
+    pub(crate) fn refresh_source(&mut self, block: &insurcraft_engine::TextBlock) {
         self.source_rect = block.rect.map(|v| v as f32);
         self.multiline = block.lines.len() > 1;
     }
 }
 
 /// The look shown for a paragraph: the family and weight guessed from its PDF font name.
-fn source_look(base_font: &str, size: f64, color: [f64; 3], detected_bold: bool, detected_italic: bool) -> pdfcraft_engine::AddedText {
-    use pdfcraft_engine::FontFamily as F;
+fn source_look(base_font: &str, size: f64, color: [f64; 3], detected_bold: bool, detected_italic: bool) -> insurcraft_engine::AddedText {
+    use insurcraft_engine::FontFamily as F;
     let name = base_font.to_ascii_lowercase();
     let family = if ["courier", "mono", "consolas", "menlo", "monaco", "lucida console"].iter().any(|s| name.contains(s)) {
         F::Courier
@@ -130,7 +130,7 @@ fn source_look(base_font: &str, size: f64, color: [f64; 3], detected_bold: bool,
     } else {
         F::Helvetica
     };
-    pdfcraft_engine::AddedText {
+    insurcraft_engine::AddedText {
         family,
         bold: detected_bold || ["bold", "black", "heavy", "semibold", "demi"].iter().any(|s| name.contains(s)),
         italic: detected_italic || ["italic", "oblique", "slanted"].iter().any(|s| name.contains(s)),
@@ -140,13 +140,13 @@ fn source_look(base_font: &str, size: f64, color: [f64; 3], detected_bold: bool,
     }
 }
 
-fn look_of(b: &pdfcraft_engine::TextBlock) -> pdfcraft_engine::AddedText {
+fn look_of(b: &insurcraft_engine::TextBlock) -> insurcraft_engine::AddedText {
     source_look(&b.base_font, b.size, b.color, b.bold, b.italic)
 }
 
-fn editor_font(look: &pdfcraft_engine::AddedText, size: f32) -> FontId {
+fn editor_font(look: &insurcraft_engine::AddedText, size: f32) -> FontId {
     let family = match (look.family, look.bold) {
-        (pdfcraft_engine::FontFamily::Courier, _) => FontFamily::Monospace,
+        (insurcraft_engine::FontFamily::Courier, _) => FontFamily::Monospace,
         (_, true) => FontFamily::Name("semibold".into()),
         (_, false) => FontFamily::Proportional,
     };
@@ -244,7 +244,7 @@ pub(crate) fn image_input(
     xf: &PageXform,
     page: usize,
     info: &DocInfo,
-    images: &[pdfcraft_engine::PageImage],
+    images: &[insurcraft_engine::PageImage],
     view: &mut DocView,
     action: &mut Option<ImageAction>,
 ) -> bool {
@@ -318,14 +318,14 @@ pub(crate) fn image_input(
                 }
                 if preview != b {
                     view.pending_edit =
-                        Some(Edit::EditPageImage { page, index: i, change: pdfcraft_engine::ImageEdit::Move(user_box(xf, info, page, preview)) });
+                        Some(Edit::EditPageImage { page, index: i, change: insurcraft_engine::ImageEdit::Move(user_box(xf, info, page, preview)) });
                 }
             }
             return true;
         }
         if ui.input(|inp| inp.key_pressed(egui::Key::Delete) || inp.key_pressed(egui::Key::Backspace)) && !ui.ctx().egui_wants_keyboard_input() {
             view.image_selection = None;
-            view.pending_edit = Some(Edit::EditPageImage { page, index: i, change: pdfcraft_engine::ImageEdit::Delete });
+            view.pending_edit = Some(Edit::EditPageImage { page, index: i, change: insurcraft_engine::ImageEdit::Delete });
             return true;
         }
     }
@@ -340,7 +340,7 @@ pub(crate) fn image_input(
     }
     if selected == Some(hit) {
         resp.context_menu(|ui| {
-            use pdfcraft_engine::ImageEdit as E;
+            use insurcraft_engine::ImageEdit as E;
             let items: [(&str, Option<E>); 4] = [
                 (tl!("Rotate Clockwise"), Some(E::Rotate(1))),
                 (tl!("Rotate Counterclockwise"), Some(E::Rotate(3))),
@@ -381,7 +381,7 @@ pub(crate) fn page_input(
     xf: &PageXform,
     page: usize,
     info: &DocInfo,
-    lines: &[pdfcraft_engine::TextBlock],
+    lines: &[insurcraft_engine::TextBlock],
     view: &mut DocView,
 ) -> bool {
     let boxes: Vec<Rect> = lines.iter().map(|l| xf.user_rect(info, page, l.rect.map(|v| v as f32)).expand(2.0)).collect();
@@ -429,9 +429,9 @@ pub(crate) fn page_input(
                 // edge) moves the paragraph with it.
                 let width = (l.rect[2] - l.rect[0]) + (to[2] - to[0]) - (from[2] - from[0]);
                 let shift = to[0] - from[0];
-                pdfcraft_engine::BlockStyle { width: Some(width), offset: (shift != 0.0).then_some([shift, 0.0]), ..Default::default() }
+                insurcraft_engine::BlockStyle { width: Some(width), offset: (shift != 0.0).then_some([shift, 0.0]), ..Default::default() }
             } else {
-                pdfcraft_engine::BlockStyle { offset: Some([to[0] - from[0], to[1] - from[1]]), ..Default::default() }
+                insurcraft_engine::BlockStyle { offset: Some([to[0] - from[0], to[1] - from[1]]), ..Default::default() }
             };
             if preview != b {
                 view.pending_edit = Some(Edit::EditTextBlock { page, block: d.block, text: l.text.clone(), style });
@@ -549,7 +549,7 @@ pub(crate) fn overlay(ctx: &egui::Context, view: &mut DocView, info: &DocInfo) -
         Some(apply) => {
             let ed = view.line_editor.take()?;
             let style = ed.style();
-            (apply && (ed.text != ed.original || style != pdfcraft_engine::BlockStyle::default())).then_some(Edit::EditTextBlock {
+            (apply && (ed.text != ed.original || style != insurcraft_engine::BlockStyle::default())).then_some(Edit::EditTextBlock {
                 page: ed.page,
                 block: ed.block,
                 text: ed.text,

@@ -1,10 +1,10 @@
-//! pdfcraft-automation — agent control for PdfCraft (architecture §13).
+//! insurcraft-automation — agent control for InsurCraft (architecture §13).
 //!
 //! - **Layer:** L7. Headless: depends on the engine, never on a UI toolkit.
 //! - [`Automation`] is a tool set over an engine [`Session`]: open, inspect, render, extract and
 //!   find text, edit pages and metadata, undo/redo, save, combine, extract and split. Every tool
 //!   has a JSON Schema ([`tools`]) and takes and returns JSON, so the same table drives the MCP
-//!   server ([`mcp`]), `pdfcraft-cli run` and (later) the UI control channel.
+//!   server ([`mcp`]), `insurcraft-cli run` and (later) the UI control channel.
 //! - Pages are **1-based** in every tool, as people number them. Rectangles are in PDF points
 //!   with the origin at the top-left of the displayed page.
 //! - An optional root directory confines every path a tool reads or writes.
@@ -29,9 +29,9 @@ use std::collections::HashMap;
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
 
-use pdfcraft_engine::{DocId, Document, Edit, Session, commands};
-use pdfcraft_platform::staging::{StagingName, create_staging, staging_suffixes};
-use pdfcraft_render::{PageRenderer, PageText, RenderConfig, RenderRequest, RequestKind};
+use insurcraft_engine::{DocId, Document, Edit, Session, commands};
+use insurcraft_platform::staging::{StagingName, create_staging, staging_suffixes};
+use insurcraft_render::{PageRenderer, PageText, RenderConfig, RenderRequest, RequestKind};
 use serde_json::{Value, json};
 
 pub use tools::{ToolDef, tools};
@@ -80,7 +80,7 @@ const MAX_DPI: f64 = 600.0;
 /// Page texts of one document version: (the working bytes, one slot per page).
 type TextCache = (Arc<Vec<u8>>, Vec<Option<Arc<PageText>>>);
 
-/// A headless PdfCraft session driven by tool calls.
+/// A headless InsurCraft session driven by tool calls.
 pub struct Automation {
     session: Session,
     root: Option<PathBuf>,
@@ -121,7 +121,7 @@ impl Automation {
         &self.session
     }
 
-    /// Save `bytes` that a caller writes on the session's behalf, such as `pdfcraft-cli run`
+    /// Save `bytes` that a caller writes on the session's behalf, such as `insurcraft-cli run`
     /// saving a rendered page. With a root, it is confined like a tool's own output (a relative
     /// path resolves inside it) and written atomically. Without one, the path is written as
     /// given, so `/dev/stdout` and the like still work. Returns where the file went.
@@ -170,18 +170,18 @@ impl Automation {
                     None => (0..doc.info.pages.len()).collect(),
                 };
                 let parity = match a.opt_str("subset")?.unwrap_or("all") {
-                    "all" => pdfcraft_engine::PageParity::Both,
-                    "even" => pdfcraft_engine::PageParity::Even,
-                    "odd" => pdfcraft_engine::PageParity::Odd,
+                    "all" => insurcraft_engine::PageParity::Both,
+                    "even" => insurcraft_engine::PageParity::Even,
+                    "odd" => insurcraft_engine::PageParity::Odd,
                     s => return Err(ToolError::InvalidArgs(format!("unknown subset {s:?} (all, even, odd)"))),
                 };
                 let orientation = match a.opt_str("orientation")?.unwrap_or("all") {
-                    "all" => pdfcraft_engine::PageOrientation::Both,
-                    "landscape" => pdfcraft_engine::PageOrientation::Landscape,
-                    "portrait" => pdfcraft_engine::PageOrientation::Portrait,
+                    "all" => insurcraft_engine::PageOrientation::Both,
+                    "landscape" => insurcraft_engine::PageOrientation::Landscape,
+                    "portrait" => insurcraft_engine::PageOrientation::Portrait,
                     o => return Err(ToolError::InvalidArgs(format!("unknown orientation {o:?} (all, landscape, portrait)"))),
                 };
-                let pages = pdfcraft_engine::filter_pages(&self.doc(&a)?.info, &base, parity, orientation);
+                let pages = insurcraft_engine::filter_pages(&self.doc(&a)?.info, &base, parity, orientation);
                 if pages.is_empty() {
                     return Err(failed("no pages match the filters"));
                 }
@@ -221,7 +221,7 @@ impl Automation {
             "doc_inspect" => self.doc_inspect(&a)?,
             "render_preview" => return self.render_preview(&a).map(|c| vec![c]),
             "page_number" => {
-                use pdfcraft_organize::LabelStyle as L;
+                use insurcraft_organize::LabelStyle as L;
                 let n = self.doc(&a)?.info.pages.len();
                 let (from, to) = (a.int("from")?, a.int("to")?);
                 if from < 1 || to < from || to as usize > n {
@@ -369,7 +369,7 @@ impl Automation {
                     write_atomic(&path, &bytes)?;
                     json!({ "path": path.to_string_lossy(), "format": ext, "bytes": bytes.len() })
                 } else {
-                    use pdfcraft_engine::ImageEdit;
+                    use insurcraft_engine::ImageEdit;
                     let change = match a.str("action")? {
                         "move" => {
                             let r: Vec<f64> =
@@ -429,7 +429,7 @@ impl Automation {
                 }
                 let block = self.doc(&a)?.text_blocks(page)[k as usize - 1].clone();
                 let text = a.opt_str("text")?.map(str::to_owned).unwrap_or(block.text);
-                let mut style = pdfcraft_engine::BlockStyle {
+                let mut style = insurcraft_engine::BlockStyle {
                     bold: a.opt_bool("bold")?,
                     size: a.opt_num("size")?,
                     underline: a.opt_bool("underline")?,
@@ -445,9 +445,9 @@ impl Automation {
                 }
                 if let Some(f) = a.opt_str("font")? {
                     let family = match f {
-                        "helvetica" => pdfcraft_engine::FontFamily::Helvetica,
-                        "times" => pdfcraft_engine::FontFamily::Times,
-                        "courier" => pdfcraft_engine::FontFamily::Courier,
+                        "helvetica" => insurcraft_engine::FontFamily::Helvetica,
+                        "times" => insurcraft_engine::FontFamily::Times,
+                        "courier" => insurcraft_engine::FontFamily::Courier,
                         other => return Err(ToolError::InvalidArgs(format!("unknown font {other:?} (helvetica, times, courier)"))),
                     };
                     style.family = Some((family, a.opt_bool("bold")?.unwrap_or(false), a.opt_bool("italic")?.unwrap_or(false)));
@@ -457,10 +457,10 @@ impl Automation {
                 }
                 if let Some(al) = a.opt_str("align")? {
                     style.align = Some(match al {
-                        "left" => pdfcraft_engine::TextAlign::Left,
-                        "center" => pdfcraft_engine::TextAlign::Center,
-                        "right" => pdfcraft_engine::TextAlign::Right,
-                        "justify" => pdfcraft_engine::TextAlign::Justify,
+                        "left" => insurcraft_engine::TextAlign::Left,
+                        "center" => insurcraft_engine::TextAlign::Center,
+                        "right" => insurcraft_engine::TextAlign::Right,
+                        "justify" => insurcraft_engine::TextAlign::Justify,
                         other => return Err(ToolError::InvalidArgs(format!("unknown align {other:?}"))),
                     });
                 }
@@ -542,9 +542,9 @@ impl Automation {
             "doc_remove_hidden" => self.doc_remove_hidden(&a)?,
             "fill_sign_add" => self.fill_sign_add(&a)?,
             "fill_sign_date_format" => self.fill_sign_date_format(&a)?,
-            "measure_distance" => self.measurement_add(&a, pdfcraft_engine::measure::Kind::Distance)?,
-            "measure_perimeter" => self.measurement_add(&a, pdfcraft_engine::measure::Kind::Perimeter)?,
-            "measure_area" => self.measurement_add(&a, pdfcraft_engine::measure::Kind::Area)?,
+            "measure_distance" => self.measurement_add(&a, insurcraft_engine::measure::Kind::Distance)?,
+            "measure_perimeter" => self.measurement_add(&a, insurcraft_engine::measure::Kind::Perimeter)?,
+            "measure_area" => self.measurement_add(&a, insurcraft_engine::measure::Kind::Area)?,
             "measure_info" => self.measurement_info(&a)?,
             "measure_list" => self.measurement_list(&a)?,
             "measure_scale" => self.measurement_scale(&a)?,
@@ -585,10 +585,10 @@ impl Automation {
             "sign_document" => self.sign_document(&a)?,
             "sign_keychain_ids" => {
                 #[cfg(target_os = "macos")]
-                let ids: Vec<Value> = pdfcraft_engine::sign::keychain::identities(None)
+                let ids: Vec<Value> = insurcraft_engine::sign::keychain::identities(None)
                     .map_err(failed)?
                     .iter()
-                    .map(|id| json!({ "id": pdfcraft_engine::sign::keychain::reference(&id.certificate), "certificate": signing::cert_json(&id.certificate) }))
+                    .map(|id| json!({ "id": insurcraft_engine::sign::keychain::reference(&id.certificate), "certificate": signing::cert_json(&id.certificate) }))
                     .collect();
                 #[cfg(not(target_os = "macos"))]
                 let ids: Vec<Value> = Vec::new();
@@ -596,10 +596,10 @@ impl Automation {
             }
             "sign_windows_ids" => {
                 #[cfg(target_os = "windows")]
-                let ids: Vec<Value> = pdfcraft_engine::sign::windows::identities()
+                let ids: Vec<Value> = insurcraft_engine::sign::windows::identities()
                     .map_err(failed)?
                     .iter()
-                    .map(|id| json!({ "id": pdfcraft_engine::sign::windows::reference(&id.certificate), "certificate": signing::cert_json(&id.certificate) }))
+                    .map(|id| json!({ "id": insurcraft_engine::sign::windows::reference(&id.certificate), "certificate": signing::cert_json(&id.certificate) }))
                     .collect();
                 #[cfg(not(target_os = "windows"))]
                 let ids: Vec<Value> = Vec::new();
@@ -687,7 +687,7 @@ impl Automation {
     }
 
     fn doc_initial_view(&mut self, a: &Args) -> Result<Value> {
-        use pdfcraft_engine::{InitialLayout as L, Magnification as M, Navigation as N};
+        use insurcraft_engine::{InitialLayout as L, Magnification as M, Navigation as N};
         let bad = |m: String| ToolError::InvalidArgs(m);
         let mut v = self.doc(a)?.initial_view();
         let before = v.clone();
@@ -775,7 +775,7 @@ impl Automation {
     }
 
     fn doc_optimize(&mut self, a: &Args) -> Result<Value> {
-        use pdfcraft_engine::optimize::{Compression, ImageSettings, Settings};
+        use insurcraft_engine::optimize::{Compression, ImageSettings, Settings};
         let id = self.doc(a)?.id;
         let before = self.doc(a)?.bytes.len();
         let path = self.resolve(a.str("path")?, true)?;
@@ -819,7 +819,7 @@ impl Automation {
                 *flag = b;
             }
         }
-        let discard: Vec<pdfcraft_engine::Hidden> = match a.get("discard") {
+        let discard: Vec<insurcraft_engine::Hidden> = match a.get("discard") {
             None => Vec::new(),
             Some(v) => v
                 .as_array()
@@ -827,7 +827,7 @@ impl Automation {
                 .iter()
                 .map(|x| {
                     x.as_str()
-                        .and_then(pdfcraft_engine::Hidden::from_id)
+                        .and_then(insurcraft_engine::Hidden::from_id)
                         .ok_or_else(|| ToolError::InvalidArgs(format!("unknown discard category {x}")))
                 })
                 .collect::<Result<_>>()?,
@@ -857,12 +857,12 @@ impl Automation {
     }
 
     /// A watermark or background picture: `file` (an image or a PDF) and `file_page` (1-based).
-    fn mark_file(&self, a: &Args) -> Result<Option<pdfcraft_engine::MarkFile>> {
+    fn mark_file(&self, a: &Args) -> Result<Option<insurcraft_engine::MarkFile>> {
         let Some(p) = a.opt_str("file")? else { return Ok(None) };
         let path = self.resolve(p, false)?;
         let bytes = std::fs::read(&path).map_err(|e| failed(format!("{}: {e}", path.display())))?;
         let page = a.opt_int("file_page")?.unwrap_or(1).max(1) as usize - 1;
-        Ok(Some(pdfcraft_engine::MarkFile {
+        Ok(Some(insurcraft_engine::MarkFile {
             name: path.file_name().map(|n| n.to_string_lossy().into_owned()).unwrap_or_default(),
             bytes: Arc::new(bytes),
             page,
@@ -876,7 +876,7 @@ impl Automation {
     }
 
     fn marks(&mut self, tool: &str, a: &Args) -> Result<Value> {
-        use pdfcraft_engine::{Background, HeaderFooter, MarkKind, Watermark};
+        use insurcraft_engine::{Background, HeaderFooter, MarkKind, Watermark};
         let n = self.doc(a)?.info.pages.len();
         let pages = match a.opt_ints("pages")? {
             Some(_) => self.pages(a, "pages")?,
@@ -955,7 +955,7 @@ impl Automation {
             None => (0..doc.info.pages.len()).collect(),
         };
         let stem = doc.name.trim_end_matches(".pdf").trim_end_matches(".PDF").to_string();
-        let mut ex = pdfcraft_engine::export::Exporter::new(doc);
+        let mut ex = insurcraft_engine::export::Exporter::new(doc);
         if tool == "doc_export_text" {
             let path = self.resolve(a.str("path")?, true)?;
             let text = ex.text_of(&pages).map_err(failed)?;
@@ -966,10 +966,10 @@ impl Automation {
         std::fs::create_dir_all(&folder).map_err(|e| failed(format!("{}: {e}", folder.display())))?;
         if tool == "doc_export_all_images" {
             let min = u32::try_from(a.opt_int("min_size")?.unwrap_or(0).max(0)).unwrap_or(u32::MAX);
-            let out = pdfcraft_engine::export::extract_images(&doc.export_source(), &pages, min).map_err(failed)?;
+            let out = insurcraft_engine::export::extract_images(&doc.export_source(), &pages, min).map_err(failed)?;
             let mut files = Vec::new();
             for (k, img) in out.images.iter().enumerate() {
-                let path = child(&folder, &pdfcraft_engine::export::image_file_name(&stem, img, k + 1));
+                let path = child(&folder, &insurcraft_engine::export::image_file_name(&stem, img, k + 1));
                 write_atomic(&path, &img.data)?;
                 files.push(json!({ "path": path.to_string_lossy(), "page": img.page + 1, "width": img.width, "height": img.height }));
             }
@@ -979,9 +979,9 @@ impl Automation {
         let dpi = a.opt_num("dpi")?.unwrap_or(150.0);
         let quality = a.opt_int("quality")?.unwrap_or(85).clamp(1, 100) as u8;
         let format = match a.opt_str("format")?.unwrap_or("png") {
-            "png" => pdfcraft_engine::export::ImageFormat::Png,
-            "jpeg" | "jpg" => pdfcraft_engine::export::ImageFormat::Jpeg { quality },
-            "tiff" | "tif" => pdfcraft_engine::export::ImageFormat::Tiff,
+            "png" => insurcraft_engine::export::ImageFormat::Png,
+            "jpeg" | "jpg" => insurcraft_engine::export::ImageFormat::Jpeg { quality },
+            "tiff" | "tif" => insurcraft_engine::export::ImageFormat::Tiff,
             f => return Err(ToolError::InvalidArgs(format!("unknown format {f:?} (png, jpeg, tiff)"))),
         };
         let mut files = Vec::new();
@@ -1012,7 +1012,7 @@ impl Automation {
                 ("Untitled.pdf".to_string(), self.session.create_blank(w, h, n).map_err(failed)?)
             }
             "images" => {
-                let resolution = a.opt_num("dpi")?.map_or(pdfcraft_engine::ImageResolution::Embedded, pdfcraft_engine::ImageResolution::Dpi);
+                let resolution = a.opt_num("dpi")?.map_or(insurcraft_engine::ImageResolution::Embedded, insurcraft_engine::ImageResolution::Dpi);
                 let mut images = Vec::new();
                 for p in a.strs("paths")? {
                     let path = self.resolve(p, false)?;
@@ -1046,7 +1046,7 @@ impl Automation {
     }
 
     fn page_set_box(&mut self, a: &Args) -> Result<Value> {
-        use pdfcraft_engine::{BoxSpec, PageBox};
+        use insurcraft_engine::{BoxSpec, PageBox};
         let doc = self.doc(a)?;
         let n = doc.info.pages.len();
         let pages = match a.opt_ints("pages")? {
@@ -1085,7 +1085,7 @@ impl Automation {
     }
 
     fn doc_protect(&mut self, a: &Args) -> Result<Value> {
-        use pdfcraft_engine::{Algorithm, Changes, Printing, Protection};
+        use insurcraft_engine::{Algorithm, Changes, Printing, Protection};
         let d = Protection::default();
         // Restrictions only exist behind a permissions password (ISO 32000-2 §7.6.4.4: /P is
         // enforced against the owner password; without one everything stays allowed). Refuse a
@@ -1172,8 +1172,8 @@ impl Automation {
 
     fn doc_create_multiple(&mut self, a: &Args) -> Result<Value> {
         let paths = a.strs("paths")?;
-        if paths.is_empty() || paths.len() > pdfcraft_engine::MAX_CREATE_FILES {
-            return Err(ToolError::InvalidArgs(format!("paths must list 1 to {} files", pdfcraft_engine::MAX_CREATE_FILES)));
+        if paths.is_empty() || paths.len() > insurcraft_engine::MAX_CREATE_FILES {
+            return Err(ToolError::InvalidArgs(format!("paths must list 1 to {} files", insurcraft_engine::MAX_CREATE_FILES)));
         }
         let separate = match a.opt_str("mode")? {
             None | Some("combine") => false,
@@ -1215,7 +1215,7 @@ impl Automation {
                 Ok((kind, stem, pdf))
             });
             out.push(match converted {
-                Ok((pdfcraft_engine::SourceKind::Pdf, ..)) => json!({ "path": p, "skipped": "already a PDF" }),
+                Ok((insurcraft_engine::SourceKind::Pdf, ..)) => json!({ "path": p, "skipped": "already a PDF" }),
                 Ok((_, stem, pdf)) => {
                     let target = unused(&dir, &stem);
                     write_atomic(&target, &pdf)?;
@@ -1312,14 +1312,14 @@ impl Automation {
             self.session.split_by_size(id, (mb * 1_048_576.0) as usize).map_err(failed)?
         } else {
             let by = match (a.opt_int("every")?, a.opt_ints("before")?) {
-                (Some(n), None) if n > 0 => pdfcraft_organize::SplitBy::PageCount(n as usize),
-                (None, Some(b)) => pdfcraft_organize::SplitBy::Before(one_based(&b)?),
+                (Some(n), None) if n > 0 => insurcraft_organize::SplitBy::PageCount(n as usize),
+                (None, Some(b)) => insurcraft_organize::SplitBy::Before(one_based(&b)?),
                 _ if bookmarks => {
                     titles = self.session.bookmark_splits(id);
                     if titles.is_empty() {
                         return Err(failed("the document has no top-level bookmarks"));
                     }
-                    pdfcraft_organize::SplitBy::Before(titles.iter().map(|t| t.0).collect())
+                    insurcraft_organize::SplitBy::Before(titles.iter().map(|t| t.0).collect())
                 }
                 _ => return Err(ToolError::InvalidArgs("every must be a positive page count".into())),
             };
@@ -1634,7 +1634,7 @@ impl Args<'_> {
 }
 
 /// The bookmark tree as JSON, with 1-based paths and pages.
-fn bookmark_tree(items: &[pdfcraft_render::OutlineItem], parent: &[usize]) -> Vec<Value> {
+fn bookmark_tree(items: &[insurcraft_render::OutlineItem], parent: &[usize]) -> Vec<Value> {
     items
         .iter()
         .enumerate()
@@ -1703,8 +1703,8 @@ fn info(d: &Document) -> Value {
         "tagged": i.tagged,
         "has_javascript": i.has_javascript,
         // XFA forms: "static" (the PDF's own fields work; the XFA data is ignored) or "dynamic"
-        // (laid out from the template by PdfCraft, see xfa_layout; placeholder pages when that failed).
-        "xfa": i.xfa.map(|x| match x { pdfcraft_render::Xfa::Static => "static", pdfcraft_render::Xfa::Dynamic => "dynamic" }),
+        // (laid out from the template by InsurCraft, see xfa_layout; placeholder pages when that failed).
+        "xfa": i.xfa.map(|x| match x { insurcraft_render::Xfa::Static => "static", insurcraft_render::Xfa::Dynamic => "dynamic" }),
         "xfa_layout": d.xfa.as_ref().map(|x| json!({ "pages": x.pages, "fields": x.fields, "warnings": x.warnings })),
         // What was rewritten from, or could not be written to, the XFA data.
         "xfa_warnings": d.xfa_warnings,
@@ -1727,20 +1727,20 @@ fn info(d: &Document) -> Value {
         "links": i.links.iter().map(|l| json!({
             "page": page1(l.page), "rect": view_rect(i, l.page, l.rect),
             "target": match &l.target {
-                pdfcraft_render::LinkTarget::Page(p, _) => json!({ "page": page1(*p) }),
-                pdfcraft_render::LinkTarget::Uri(u) => json!({ "uri": u }),
-                pdfcraft_render::LinkTarget::SetLayers { changes, preserve_rb } => json!({
+                insurcraft_render::LinkTarget::Page(p, _) => json!({ "page": page1(*p) }),
+                insurcraft_render::LinkTarget::Uri(u) => json!({ "uri": u }),
+                insurcraft_render::LinkTarget::SetLayers { changes, preserve_rb } => json!({
                     "layers": changes.iter().map(|(op, ocg)| json!({
                         "layer": i.layers.iter().find(|l| l.id == *ocg).map(|l| l.name.as_str()),
                         "state": match op {
-                            pdfcraft_render::LayerOp::On => "on",
-                            pdfcraft_render::LayerOp::Off => "off",
-                            pdfcraft_render::LayerOp::Toggle => "toggle",
+                            insurcraft_render::LayerOp::On => "on",
+                            insurcraft_render::LayerOp::Off => "off",
+                            insurcraft_render::LayerOp::Toggle => "toggle",
                         },
                     })).collect::<Vec<_>>(),
                     "preserve_rb": preserve_rb,
                 }),
-                pdfcraft_render::LinkTarget::Other(o) => json!({ "other": o }),
+                insurcraft_render::LinkTarget::Other(o) => json!({ "other": o }),
             },
         })).collect::<Vec<_>>(),
         "layers": i.layers.iter().map(|l| json!({ "name": l.name, "visible": l.visible })).collect::<Vec<_>>(),
@@ -1755,11 +1755,11 @@ fn info(d: &Document) -> Value {
 
 /// A user-space rectangle on 0-based `page` in displayed-page coordinates; unchanged when the
 /// page is unknown (a malformed annotation that points at no page).
-fn view_rect(i: &pdfcraft_render::DocInfo, page: usize, rect: [f32; 4]) -> [f32; 4] {
+fn view_rect(i: &insurcraft_render::DocInfo, page: usize, rect: [f32; 4]) -> [f32; 4] {
     i.pages.get(page).map_or(rect, |p| comments::rect_to_view(p, rect))
 }
 
-fn outline(items: &[pdfcraft_render::OutlineItem]) -> Value {
+fn outline(items: &[insurcraft_render::OutlineItem]) -> Value {
     Value::Array(items.iter().map(|o| json!({ "title": o.title, "page": o.page.map(|p| p + 1), "children": outline(&o.children) })).collect())
 }
 
@@ -1877,7 +1877,7 @@ fn write_atomic_with(path: &Path, bytes: &[u8], suffixes: impl IntoIterator<Item
 #[cfg(test)]
 mod tests {
     use super::*;
-    use pdfcraft_platform::staging::STAGING_ATTEMPTS;
+    use insurcraft_platform::staging::STAGING_ATTEMPTS;
 
     #[test]
     fn dot_dot_resolves_by_name_and_never_climbs_above_the_start() {
@@ -1932,14 +1932,14 @@ mod tests {
 
     /// A fresh, empty folder for one staging test.
     fn staging_dir(test: &str) -> PathBuf {
-        let dir = std::env::temp_dir().join(format!("pdfcraft-staging-{}-{test}", std::process::id()));
+        let dir = std::env::temp_dir().join(format!("insurcraft-staging-{}-{test}", std::process::id()));
         let _ = std::fs::remove_dir_all(&dir);
         std::fs::create_dir_all(&dir).unwrap();
         dir
     }
 
     fn staged(dir: &Path, suffix: u64) -> PathBuf {
-        dir.join(format!(".out.pdf.{suffix:016x}.pdfcraft-tmp"))
+        dir.join(format!(".out.pdf.{suffix:016x}.insurcraft-tmp"))
     }
 
     fn read(p: &Path) -> String {

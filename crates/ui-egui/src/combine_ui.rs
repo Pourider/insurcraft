@@ -11,10 +11,10 @@ use std::time::SystemTime;
 
 use egui::{Align, Color32, CornerRadius, Layout, Modifiers, Rect, Sense, Stroke, vec2};
 use egui_extras::{Column, TableBuilder};
-use pdfcraft_engine::SourceProblem;
+use insurcraft_engine::SourceProblem;
 
 use crate::theme::{self, Tokens};
-use crate::{PdfCraftApp, icons, widgets};
+use crate::{InsurCraftApp, icons, widgets};
 
 /// Same reds and ambers as the signature status (`sign_ui`).
 const ERROR: Color32 = Color32::from_rgb(0xD7, 0x37, 0x3F);
@@ -203,18 +203,18 @@ enum AssessError {
 fn assess(bytes: &Arc<Vec<u8>>, password: Option<&str>) -> Result<Assessed, AssessError> {
     // The engine that combines decides whether the password works; the inspector (which may
     // not accept every password the engine does, e.g. an RC4 owner password) adds the details.
-    let check = pdfcraft_engine::combine_source_check(bytes, password);
+    let check = insurcraft_engine::combine_source_check(bytes, password);
     if check == Err(SourceProblem::WrongPassword) {
         return Err(AssessError::WrongPassword);
     }
-    let info = pdfcraft_render::inspect(bytes.clone(), password);
+    let info = insurcraft_render::inspect(bytes.clone(), password);
     if let (Err(SourceProblem::Unreadable(e)), Err(_)) = (&check, &info) {
         return Err(AssessError::Unreadable(e.clone()));
     }
     let info = info.ok();
     let pages = match &info {
         Some(i) => i.pages.len(),
-        None => pdfcraft_engine::source_page_count(bytes, password).unwrap_or(0),
+        None => insurcraft_engine::source_page_count(bytes, password).unwrap_or(0),
     };
     let encrypted = password.is_some() || info.as_ref().is_some_and(|i| i.encrypted);
     let warnings = info.map(|i| i.warnings).unwrap_or_default();
@@ -304,7 +304,7 @@ impl CombineFile {
         let result = if self.range.trim().is_empty() {
             Ok(self.pages)
         } else {
-            match pdfcraft_engine::print::select_pages(self.pages, Some(&self.range), &[], pdfcraft_engine::print::Subset::All, false) {
+            match insurcraft_engine::print::select_pages(self.pages, Some(&self.range), &[], insurcraft_engine::print::Subset::All, false) {
                 Ok(p) if p.is_empty() => Err(tl!("No pages selected").to_string()),
                 Ok(p) => Ok(p.len()),
                 Err(e) => Err(e.to_string()),
@@ -358,7 +358,7 @@ struct TableEvents {
 }
 
 /// The Combine files page.
-pub(crate) fn page(app: &mut PdfCraftApp, ui: &mut egui::Ui) {
+pub(crate) fn page(app: &mut InsurCraftApp, ui: &mut egui::Ui) {
     let t = Tokens::get(ui.ctx());
     let files_hovering = ui.ctx().input(|i| !i.raw.hovered_files.is_empty());
     // Ranges are checked before anything below reads them.
@@ -517,7 +517,7 @@ pub(crate) fn page(app: &mut PdfCraftApp, ui: &mut egui::Ui) {
 
 /// Unlock…'s password box, floating below what opened it. Enter unlocks, Escape or a click
 /// elsewhere closes it.
-fn unlock_prompt(app: &mut PdfCraftApp, ctx: &egui::Context) {
+fn unlock_prompt(app: &mut InsurCraftApp, ctx: &egui::Context) {
     let Some(mut prompt) = app.combine_tab.unlock.take() else { return };
     let t = Tokens::get(ctx);
     let files: Vec<&CombineFile> = app.combine_draft.iter().filter(|f| prompt.rows.contains(&f.id)).collect();
@@ -656,7 +656,7 @@ fn keyboard(ui: &egui::Ui, n: usize, any_selected: bool) -> Option<RowAction> {
     })
 }
 
-fn empty_state(app: &mut PdfCraftApp, ui: &mut egui::Ui, t: &Tokens, files_hovering: bool) {
+fn empty_state(app: &mut InsurCraftApp, ui: &mut egui::Ui, t: &Tokens, files_hovering: bool) {
     ui.vertical_centered(|ui| {
         ui.add_space((ui.available_height() / 2.0 - 70.0).max(16.0));
         ui.add(icons::image("files", 40.0, if files_hovering { t.accent } else { t.text_faint }));
@@ -684,7 +684,7 @@ fn empty_state(app: &mut PdfCraftApp, ui: &mut egui::Ui, t: &Tokens, files_hover
 }
 
 /// "Add files…" with a menu of the other ways to add: folders (desktop).
-fn add_menu(app: &mut PdfCraftApp, ui: &mut egui::Ui) {
+fn add_menu(app: &mut InsurCraftApp, ui: &mut egui::Ui) {
     if !cfg!(not(target_arch = "wasm32")) {
         if widgets::icon_pill(ui, "plus", tl!("Add files…"), false).clicked() {
             app.combine_dialog();
@@ -719,7 +719,7 @@ fn add_menu(app: &mut PdfCraftApp, ui: &mut egui::Ui) {
 }
 
 /// The file table.
-fn table(app: &mut PdfCraftApp, ui: &mut egui::Ui, t: &Tokens, checks: &[Result<usize, String>], selected: &[bool]) -> TableEvents {
+fn table(app: &mut InsurCraftApp, ui: &mut egui::Ui, t: &Tokens, checks: &[Result<usize, String>], selected: &[bool]) -> TableEvents {
     let mut events = TableEvents::default();
     // The same file twice is allowed (e.g. a cover sheet), but probably a mistake.
     let twice: Vec<bool> = app
@@ -840,7 +840,7 @@ fn heading(ui: &mut egui::Ui, t: &Tokens, key: SortKey, sort: Option<(SortKey, b
 
 #[allow(clippy::too_many_arguments)]
 fn table_body(
-    app: &mut PdfCraftApp,
+    app: &mut InsurCraftApp,
     ui: &mut egui::Ui,
     t: &Tokens,
     rows: &Rows,
@@ -1133,7 +1133,7 @@ fn utc_stamp(time: SystemTime) -> String {
     format!("{y:04}-{m:02}-{d:02} {:02}:{:02} UTC", rem / 3600, rem % 3600 / 60)
 }
 
-impl PdfCraftApp {
+impl InsurCraftApp {
     /// Show the Combine files tab (File ▸ Combine files…), opening it if needed.
     pub fn open_combine_tab(&mut self) {
         self.combine_tab.open = true;

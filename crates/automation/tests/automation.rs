@@ -3,8 +3,8 @@
 use std::path::{Path, PathBuf};
 
 #[cfg(feature = "mcp")]
-use pdfcraft_automation::mcp::McpServer;
-use pdfcraft_automation::{Automation, Content, ToolError, tools};
+use insurcraft_automation::mcp::McpServer;
+use insurcraft_automation::{Automation, Content, ToolError, tools};
 use serde_json::{Value, json};
 
 /// A PDF with `n` 200×300 pt pages reading "Page 1", "Page 2", …
@@ -37,7 +37,7 @@ fn fixture(n: usize) -> Vec<u8> {
 
 /// A fresh directory with `a.pdf` (3 pages) and `b.pdf` (2 pages).
 fn workdir(test: &str) -> PathBuf {
-    let dir = std::env::temp_dir().join(format!("pdfcraft-automation-{test}-{}", std::process::id()));
+    let dir = std::env::temp_dir().join(format!("insurcraft-automation-{test}-{}", std::process::id()));
     let _ = std::fs::remove_dir_all(&dir);
     std::fs::create_dir_all(&dir).unwrap();
     std::fs::write(dir.join("a.pdf"), fixture(3)).unwrap();
@@ -77,7 +77,7 @@ fn tool_table_is_well_formed() {
         }
         assert!(!(t.read_only && t.destructive), "{} is both read-only and destructive", t.name);
         if let Some(c) = t.command {
-            assert!(pdfcraft_engine::commands::command(c).is_some(), "{} names unregistered command {c}", t.name);
+            assert!(insurcraft_engine::commands::command(c).is_some(), "{} names unregistered command {c}", t.name);
         }
     }
 }
@@ -217,11 +217,11 @@ fn errors_are_specific_and_safe() {
     assert_eq!(ok(&mut a, "doc_list", json!({}))["documents"], json!([]));
 
     // The root confines reads and writes.
-    let outside = std::env::temp_dir().join("pdfcraft-automation-outside.pdf");
+    let outside = std::env::temp_dir().join("insurcraft-automation-outside.pdf");
     std::fs::write(&outside, fixture(1)).unwrap();
     assert!(matches!(err(&mut a, "doc_open", json!({ "path": outside.to_str().unwrap() })), ToolError::Failed(m) if m.contains("outside")));
     assert!(
-        matches!(err(&mut a, "doc_open", json!({ "path": "../pdfcraft-automation-outside.pdf" })), ToolError::Failed(m) if m.contains("outside"))
+        matches!(err(&mut a, "doc_open", json!({ "path": "../insurcraft-automation-outside.pdf" })), ToolError::Failed(m) if m.contains("outside"))
     );
     let doc = ok(&mut a, "doc_open", json!({ "path": "a.pdf" }))["doc"].as_u64().unwrap();
     assert!(a.call("doc_save", &json!({ "doc": doc, "path": "new/../../escape.pdf" })).is_err());
@@ -232,7 +232,7 @@ fn errors_are_specific_and_safe() {
 /// `root/` (with `inside.pdf`) next to `outside/` (with the file `secret.pdf` and the folder
 /// `sub`), all in a fresh temporary directory. Returns (base, canonical root).
 fn sandbox(test: &str) -> (PathBuf, PathBuf) {
-    let base = std::env::temp_dir().join(format!("pdfcraft-automation-{test}-{}", std::process::id()));
+    let base = std::env::temp_dir().join(format!("insurcraft-automation-{test}-{}", std::process::id()));
     let _ = std::fs::remove_dir_all(&base);
     std::fs::create_dir_all(base.join("root")).unwrap();
     std::fs::create_dir_all(base.join("outside/sub")).unwrap();
@@ -293,10 +293,10 @@ fn root_refusals_do_not_reveal_what_exists_outside() {
             "../outside/secret.pdf ".into(),
             // Another network share or device namespace is refused by name, without contacting
             // it (`.invalid` never resolves, so a regression fails instead of reaching a host).
-            r"\\pdfcraft-test.invalid\share\secret.pdf".into(),
-            "//pdfcraft-test.invalid/share/secret.pdf".into(),
-            r"\\?\UNC\pdfcraft-test.invalid\share\secret.pdf".into(),
-            r"\\.\pipe\pdfcraft-test".into(),
+            r"\\insurcraft-test.invalid\share\secret.pdf".into(),
+            "//insurcraft-test.invalid/share/secret.pdf".into(),
+            r"\\?\UNC\insurcraft-test.invalid\share\secret.pdf".into(),
+            r"\\.\pipe\insurcraft-test".into(),
             r"\\?\GLOBALROOT\Device\Null".into(),
         ]);
         let other = base.join("outside/secret.pdf").canonicalize().unwrap();
@@ -410,7 +410,7 @@ fn writing_to_a_folder_touches_nothing_beside_it() {
     // what this checks; the listings and the file at the old staging name are canaries.
     let (base, root) = sandbox("root-itself");
     let mut a = auto(&root);
-    let beside = base.join(".root.pdfcraft-tmp");
+    let beside = base.join(".root.insurcraft-tmp");
     std::fs::write(&beside, "SENTINEL").unwrap();
     std::fs::create_dir_all(root.join("folder")).unwrap();
     let listing = |dir: &Path| {
@@ -537,7 +537,7 @@ fn mcp_session_over_stdio() {
     assert_eq!(replies.len(), 4, "the notification gets no reply");
 
     assert_eq!(replies[0]["result"]["protocolVersion"], "2025-03-26");
-    assert_eq!(replies[0]["result"]["serverInfo"]["name"], "pdfcraft");
+    assert_eq!(replies[0]["result"]["serverInfo"]["name"], "insurcraft");
     assert_eq!(replies[1]["result"]["tools"].as_array().unwrap().len(), tools().len());
     assert_eq!(replies[2]["result"]["structuredContent"]["pages"], 3);
     assert_eq!(replies[2]["result"]["isError"], false);
@@ -555,7 +555,7 @@ fn mcp_errors() {
     assert_eq!(rpc(&mut s, 1, "initialize", json!({ "protocolVersion": "1999-01-01" }))["result"]["protocolVersion"], "2025-06-18");
     assert_eq!(rpc(&mut s, 2, "ping", json!({}))["result"], json!({}));
     assert_eq!(rpc(&mut s, 3, "prompts/list", json!({}))["error"]["code"], -32601);
-    assert_eq!(rpc(&mut s, 6, "resources/read", json!({ "uri": "pdfcraft://doc/9/info" }))["error"]["code"], -32602);
+    assert_eq!(rpc(&mut s, 6, "resources/read", json!({ "uri": "insurcraft://doc/9/info" }))["error"]["code"], -32602);
     assert_eq!(rpc(&mut s, 4, "tools/call", json!({ "name": "nope" }))["error"]["code"], -32602);
     let failed = rpc(&mut s, 5, "tools/call", json!({ "name": "doc_open", "arguments": { "path": "/definitely/not/here.pdf" } }));
     assert_eq!(failed["result"]["isError"], true);
@@ -575,19 +575,19 @@ fn mcp_resources_expose_open_documents() {
     rpc(&mut s, 4, "tools/call", json!({ "name": "doc_open", "arguments": { "path": "a.pdf" } }));
     let list = rpc(&mut s, 5, "resources/list", json!({}))["result"]["resources"].as_array().cloned().unwrap();
     assert_eq!(list.len(), 2 + 3 + 2, "info, text, three page images and two session resources");
-    assert_eq!(list[0]["uri"], "pdfcraft://doc/1/info");
+    assert_eq!(list[0]["uri"], "insurcraft://doc/1/info");
     let read = |s: &mut McpServer, uri: &str| rpc(s, 6, "resources/read", json!({ "uri": uri }))["result"]["contents"][0].clone();
-    let text = read(&mut s, "pdfcraft://doc/1/text");
+    let text = read(&mut s, "insurcraft://doc/1/text");
     assert_eq!(text["mimeType"], "text/plain");
     assert!(text["text"].as_str().unwrap().contains("Page 2\nPage 2"), "{text}");
-    assert_eq!(read(&mut s, "pdfcraft://doc/1/page/3/text")["text"], "Page 3");
-    let info: Value = serde_json::from_str(read(&mut s, "pdfcraft://doc/1/info")["text"].as_str().unwrap()).unwrap();
+    assert_eq!(read(&mut s, "insurcraft://doc/1/page/3/text")["text"], "Page 3");
+    let info: Value = serde_json::from_str(read(&mut s, "insurcraft://doc/1/info")["text"].as_str().unwrap()).unwrap();
     assert_eq!(info["pages"].as_array().unwrap().len(), 3);
-    let img = read(&mut s, "pdfcraft://doc/1/page/1/image?dpi=36");
+    let img = read(&mut s, "insurcraft://doc/1/page/1/image?dpi=36");
     use base64::Engine as _;
     let png = base64::engine::general_purpose::STANDARD.decode(img["blob"].as_str().unwrap()).unwrap();
     assert_eq!(&png[1..4], b"PNG");
-    assert_eq!(rpc(&mut s, 7, "resources/read", json!({ "uri": "pdfcraft://doc/1/page/9/image" }))["error"]["code"], -32602);
+    assert_eq!(rpc(&mut s, 7, "resources/read", json!({ "uri": "insurcraft://doc/1/page/9/image" }))["error"]["code"], -32602);
 }
 
 /// A server in compact mode with `dir` as its root.
@@ -624,11 +624,11 @@ fn mcp_default_lists_every_tool_and_has_no_meta_tools() {
 fn mcp_compact_lists_the_core_tools_and_two_meta_tools() {
     let mut s = McpServer::new(Automation::new()).with_compact(true);
     let list = rpc(&mut s, 1, "tools/list", json!({}));
-    let mut expected: Vec<String> = pdfcraft_automation::mcp::COMPACT_CORE_TOOLS.iter().map(|n| n.to_string()).collect();
+    let mut expected: Vec<String> = insurcraft_automation::mcp::COMPACT_CORE_TOOLS.iter().map(|n| n.to_string()).collect();
     expected.extend(["tool_search".to_string(), "tool_call".to_string()]);
     assert_eq!(tool_names(&list), expected);
     let all: Vec<&str> = tools().iter().map(|t| t.name).collect();
-    for core in pdfcraft_automation::mcp::COMPACT_CORE_TOOLS {
+    for core in insurcraft_automation::mcp::COMPACT_CORE_TOOLS {
         assert!(all.contains(core), "core tool {core} is not in the tool table");
     }
     // Core tools are the real definitions, and the list is far smaller than the full one.
@@ -636,7 +636,7 @@ fn mcp_compact_lists_the_core_tools_and_two_meta_tools() {
     let core_open = list["result"]["tools"][0].clone();
     assert_eq!(Some(&core_open), full["result"]["tools"].as_array().unwrap().iter().find(|t| t["name"] == "doc_open"));
     assert!(list.to_string().len() * 5 < full.to_string().len(), "compact {} vs full {}", list.to_string().len(), full.to_string().len());
-    for meta in &list["result"]["tools"].as_array().unwrap()[pdfcraft_automation::mcp::COMPACT_CORE_TOOLS.len()..] {
+    for meta in &list["result"]["tools"].as_array().unwrap()[insurcraft_automation::mcp::COMPACT_CORE_TOOLS.len()..] {
         assert_eq!(meta["inputSchema"]["type"], "object");
     }
     let instructions = rpc(&mut s, 3, "initialize", json!({}))["result"]["instructions"].as_str().unwrap().to_string();
@@ -795,7 +795,7 @@ fn mcp_compact_meta_tools_reject_unknown_arguments() {
     let dir = workdir("mcp-compact-keys");
     let mut s = compact_server(&dir);
     let list = rpc(&mut s, 1, "tools/list", json!({}));
-    let metas = &list["result"]["tools"].as_array().unwrap()[pdfcraft_automation::mcp::COMPACT_CORE_TOOLS.len()..];
+    let metas = &list["result"]["tools"].as_array().unwrap()[insurcraft_automation::mcp::COMPACT_CORE_TOOLS.len()..];
     assert_eq!(metas.len(), 2);
     for meta in metas {
         assert_eq!(meta["inputSchema"]["additionalProperties"], false, "{}", meta["name"]);
@@ -1164,7 +1164,7 @@ fn protecting_with_an_open_password_alone_restricts_nothing() {
 #[test]
 fn forms_through_tools() {
     let dir = workdir("forms");
-    let src = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("../../dist/demo/pdfcraft-showcase.pdf");
+    let src = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("../../dist/demo/insurcraft-showcase.pdf");
     if !src.exists() {
         eprintln!("skipped: run `cargo xtask demo-pdf` for the showcase form");
         return;
@@ -1496,10 +1496,10 @@ fn editing_page_images_through_tools() {
 
 #[test]
 fn editing_form_artwork_through_tools() {
-    use pdfcraft_cos::{Dict, Document, Object, SaveOptions, Stream, write_incremental};
+    use insurcraft_cos::{Dict, Document, Object, SaveOptions, Stream, write_incremental};
     let dir = workdir("form-artwork");
     let mut cos = Document::open(std::sync::Arc::new(fixture(1))).unwrap();
-    let page = pdfcraft_model::pages(&cos)[0].clone();
+    let page = insurcraft_model::pages(&cos)[0].clone();
     let mut form = Dict::new();
     form.set(b"Subtype".to_vec(), Object::name("Form"));
     form.set(b"BBox".to_vec(), Object::Array([0, 0, 80, 40].map(Object::Int).to_vec()));
@@ -1600,7 +1600,7 @@ fn fill_and_sign_through_tools() {
     // Month and weekday names in a chosen language, for the preference or one date.
     let f = ok(&mut a, "fill_sign_date_format", json!({ "format": "d. mmmm yyyy", "language": "cs" }));
     assert_eq!((f["language"].as_str(), f["today"].as_str()), (Some("cs"), Some("14. listopadu 2023")), "{f}");
-    assert_eq!(f["languages"].as_array().unwrap().len(), pdfcraft_engine::dates::DATE_LANGUAGES.len(), "every date language");
+    assert_eq!(f["languages"].as_array().unwrap().len(), insurcraft_engine::dates::DATE_LANGUAGES.len(), "every date language");
     ok(&mut a, "fill_sign_add", json!({ "doc": doc, "page": 1, "type": "date", "at": [20, 280], "format": "d \\de mmmm", "language": "es" }));
     assert!(page_text(&mut a, doc)[0].contains("14 de noviembre"));
     assert!(matches!(a.call("fill_sign_date_format", &json!({ "format": "yyy" })), Err(ToolError::InvalidArgs(_))));
@@ -2096,7 +2096,7 @@ fn printing_through_tools() {
     let mut a = auto(&dir);
     let doc = ok(&mut a, "doc_open", json!({ "path": "a.pdf" }))["doc"].as_u64().unwrap();
     assert!(ok(&mut a, "printers", json!({}))["printers"].is_array());
-    let none = ok(&mut a, "printer_options", json!({ "printer": "No_Such_Queue_PdfCraft" }));
+    let none = ok(&mut a, "printer_options", json!({ "printer": "No_Such_Queue_InsurCraft" }));
     assert_eq!((none["count"].as_u64(), none["options"].as_array().map(Vec::len)), (Some(0), Some(0)));
     assert!(matches!(a.call("printer_options", &json!({})), Err(ToolError::InvalidArgs(_))));
     assert!(matches!(
@@ -2355,9 +2355,9 @@ fn links_through_tools() {
     assert_eq!(list["count"], 3);
     let added = list["links"].as_array().unwrap().iter().find(|l| l["to_page"] == 1).unwrap().clone();
     assert_eq!(added["rect"], json!([72.0, 300.0, 200.0, 320.0]));
-    ok(&mut a, "link_edit", json!({ "doc": doc, "page": 1, "index": added["index"], "url": "https://pdfcraft.dev" }));
+    ok(&mut a, "link_edit", json!({ "doc": doc, "page": 1, "index": added["index"], "url": "https://insurcraft.dev" }));
     let list = ok(&mut a, "link_list", json!({ "doc": doc }));
-    assert!(list["links"].as_array().unwrap().iter().any(|l| l["url"] == "https://pdfcraft.dev"));
+    assert!(list["links"].as_array().unwrap().iter().any(|l| l["url"] == "https://insurcraft.dev"));
     ok(&mut a, "link_delete", json!({ "doc": doc, "page": 1, "index": added["index"] }));
     let r = ok(&mut a, "links_remove", json!({ "doc": doc }));
     assert_eq!(r["removed"], 2);
@@ -2608,7 +2608,7 @@ fn line_endings_through_the_tool() {
         Err(ToolError::InvalidArgs(_))
     ));
     ok(&mut a, "doc_save", json!({ "doc": doc, "path": "ended.pdf" }));
-    let saved = pdfcraft_cos::Document::open(std::sync::Arc::new(std::fs::read(dir.join("ended.pdf")).unwrap())).unwrap();
+    let saved = insurcraft_cos::Document::open(std::sync::Arc::new(std::fs::read(dir.join("ended.pdf")).unwrap())).unwrap();
     for name in [b"Diamond".as_slice(), b"Circle", b"Slash", b"Square"] {
         assert!(
             saved.object_numbers().iter().any(|n| saved.try_get(*n).ok().is_some_and(|o| object_has_name(&o, name))),
@@ -2621,7 +2621,7 @@ fn line_endings_through_the_tool() {
         .into_iter()
         .filter_map(|n| {
             let obj = saved.try_get(n).ok()?;
-            let pdfcraft_cos::Object::Stream(s) = &*obj else { return None };
+            let insurcraft_cos::Object::Stream(s) = &*obj else { return None };
             if s.dict.name(b"Subtype") != Some(b"Form") {
                 return None;
             }
@@ -2632,12 +2632,12 @@ fn line_endings_through_the_tool() {
     assert!(drawn.iter().any(|s| s.contains(" l S")), "an open ending was drawn: {drawn:?}");
 }
 
-fn object_has_name(obj: &pdfcraft_cos::Object, name: &[u8]) -> bool {
+fn object_has_name(obj: &insurcraft_cos::Object, name: &[u8]) -> bool {
     match obj {
-        pdfcraft_cos::Object::Name(n) => n.as_slice() == name,
-        pdfcraft_cos::Object::Array(items) => items.iter().any(|o| object_has_name(o, name)),
-        pdfcraft_cos::Object::Dict(d) => d.iter().any(|(_, o)| object_has_name(o, name)),
-        pdfcraft_cos::Object::Stream(s) => s.dict.iter().any(|(_, o)| object_has_name(o, name)),
+        insurcraft_cos::Object::Name(n) => n.as_slice() == name,
+        insurcraft_cos::Object::Array(items) => items.iter().any(|o| object_has_name(o, name)),
+        insurcraft_cos::Object::Dict(d) => d.iter().any(|(_, o)| object_has_name(o, name)),
+        insurcraft_cos::Object::Stream(s) => s.dict.iter().any(|(_, o)| object_has_name(o, name)),
         _ => false,
     }
 }
@@ -3024,7 +3024,7 @@ fn exporting_to_word_html_and_rtf() {
 #[test]
 fn dynamic_xfa_forms_open_render_fill_and_save_through_tools() {
     let dir = workdir("xfa");
-    std::fs::write(dir.join("xfa.pdf"), pdfcraft_xfa::fixtures::shell(&pdfcraft_xfa::fixtures::template(2))).unwrap();
+    std::fs::write(dir.join("xfa.pdf"), insurcraft_xfa::fixtures::shell(&insurcraft_xfa::fixtures::template(2))).unwrap();
     let mut a = auto(&dir);
     let opened = ok(&mut a, "doc_open", json!({ "path": "xfa.pdf" }));
     assert_eq!(opened["pages"], 2, "laid out from the template, not the placeholder page");
@@ -3218,7 +3218,7 @@ fn measurement_snap_tool_covers_all_targets() {
 #[test]
 fn xfa_scripts_run_for_buttons_and_field_changes_through_tools() {
     let dir = workdir("xfa-scripts");
-    std::fs::write(dir.join("scripted.pdf"), pdfcraft_xfa::fixtures::shell(&pdfcraft_xfa::fixtures::scripted_template())).unwrap();
+    std::fs::write(dir.join("scripted.pdf"), insurcraft_xfa::fixtures::shell(&insurcraft_xfa::fixtures::scripted_template())).unwrap();
     let mut a = auto(&dir);
     let doc = ok(&mut a, "doc_open", json!({ "path": "scripted.pdf" }))["doc"].as_u64().unwrap();
     let field = |a: &mut Automation, n: &str| {
@@ -3295,7 +3295,7 @@ mod close_argument_tests {
             let parent = std::env::temp_dir();
             for _ in 0..128 {
                 let serial = NEXT.fetch_add(1, Ordering::Relaxed);
-                let path = parent.join(format!("pdfcraft-close-{}-{serial}", std::process::id()));
+                let path = parent.join(format!("insurcraft-close-{}-{serial}", std::process::id()));
                 match std::fs::create_dir(&path) {
                     Ok(()) => {
                         let dir = Self(path);
@@ -3332,22 +3332,22 @@ mod close_argument_tests {
             let list = ok(&mut a, "doc_list", json!({}));
             let info = ok(&mut a, "doc_info", json!({ "doc": doc }));
             let text = ok(&mut a, "text_extract", json!({ "doc": doc }));
-            let bytes = a.session().get(pdfcraft_engine::DocId(doc)).unwrap().bytes.clone();
+            let bytes = a.session().get(insurcraft_engine::DocId(doc)).unwrap().bytes.clone();
             for invalid in [json!("false"), json!(0), json!([]), json!({})] {
                 let error = a.call("doc_close", &json!({ "doc": doc, "discard_changes": invalid })).unwrap_err();
                 assert!(matches!(error, ToolError::InvalidArgs(ref message) if message == "discard_changes must be true or false"));
                 assert_eq!(ok(&mut a, "doc_list", json!({})), list, "all document identities, order, paths and history stay unchanged");
                 assert_eq!(ok(&mut a, "doc_info", json!({ "doc": doc })), info);
                 assert_eq!(ok(&mut a, "text_extract", json!({ "doc": doc })), text);
-                let current = a.session().get(pdfcraft_engine::DocId(doc)).unwrap();
+                let current = a.session().get(insurcraft_engine::DocId(doc)).unwrap();
                 assert_eq!(current.bytes, bytes);
                 assert_eq!(current.dirty, dirty);
                 assert_eq!(std::fs::read(dir.0.join("a.pdf")).unwrap(), source);
                 assert_eq!(std::fs::read(dir.0.join("b.pdf")).unwrap(), other_source);
             }
             assert_eq!(ok(&mut a, "doc_close", json!({ "doc": doc, "discard_changes": true }))["closed"], doc);
-            assert!(a.session().get(pdfcraft_engine::DocId(doc)).is_none());
-            assert!(a.session().get(pdfcraft_engine::DocId(other)).is_some());
+            assert!(a.session().get(insurcraft_engine::DocId(doc)).is_none());
+            assert!(a.session().get(insurcraft_engine::DocId(other)).is_some());
         }
     }
 
@@ -3364,24 +3364,24 @@ mod close_argument_tests {
                 args["discard_changes"] = discard;
             }
             assert_eq!(ok(&mut a, "doc_close", args)["closed"], doc);
-            assert!(a.session().get(pdfcraft_engine::DocId(doc)).is_none());
-            assert!(a.session().get(pdfcraft_engine::DocId(other)).is_some());
+            assert!(a.session().get(insurcraft_engine::DocId(doc)).is_none());
+            assert!(a.session().get(insurcraft_engine::DocId(other)).is_some());
         }
         let doc = ok(&mut a, "doc_open", json!({ "path": "a.pdf" }))["doc"].as_u64().unwrap();
         ok(&mut a, "doc_set_info", json!({ "doc": doc, "key": "Title", "value": "Unsaved title" }));
         let before = ok(&mut a, "doc_list", json!({}));
         let info = ok(&mut a, "doc_info", json!({ "doc": doc }));
-        let bytes = a.session().get(pdfcraft_engine::DocId(doc)).unwrap().bytes.clone();
+        let bytes = a.session().get(insurcraft_engine::DocId(doc)).unwrap().bytes.clone();
         for args in [json!({ "doc": doc }), json!({ "doc": doc, "discard_changes": null }), json!({ "doc": doc, "discard_changes": false })] {
             let error = a.call("doc_close", &args).unwrap_err();
             assert!(matches!(error, ToolError::Failed(ref message) if message.contains("unsaved changes")));
             assert_eq!(ok(&mut a, "doc_list", json!({})), before);
             assert_eq!(ok(&mut a, "doc_info", json!({ "doc": doc })), info);
-            assert_eq!(a.session().get(pdfcraft_engine::DocId(doc)).unwrap().bytes, bytes);
+            assert_eq!(a.session().get(insurcraft_engine::DocId(doc)).unwrap().bytes, bytes);
         }
         assert_eq!(ok(&mut a, "doc_close", json!({ "doc": doc, "discard_changes": true }))["closed"], doc);
-        assert!(a.session().get(pdfcraft_engine::DocId(doc)).is_none());
-        assert!(a.session().get(pdfcraft_engine::DocId(other)).is_some());
+        assert!(a.session().get(insurcraft_engine::DocId(doc)).is_none());
+        assert!(a.session().get(insurcraft_engine::DocId(other)).is_some());
         assert_eq!(std::fs::read(dir.0.join("a.pdf")).unwrap(), source);
     }
 }
@@ -3399,7 +3399,7 @@ mod combine_argument_tests {
             let parent = std::env::temp_dir();
             for _ in 0..128 {
                 let serial = NEXT.fetch_add(1, Ordering::Relaxed);
-                let path = parent.join(format!("pdfcraft-combine-{}-{serial}", std::process::id()));
+                let path = parent.join(format!("insurcraft-combine-{}-{serial}", std::process::id()));
                 match std::fs::create_dir(&path) {
                     Ok(()) => {
                         let dir = Self(path);
@@ -3435,7 +3435,7 @@ mod combine_argument_tests {
         let list = ok(&mut a, "doc_list", json!({}));
         let info = ok(&mut a, "doc_info", json!({ "doc": doc }));
         let text = page_text(&mut a, doc);
-        let bytes = a.session().get(pdfcraft_engine::DocId(doc)).unwrap().bytes.clone();
+        let bytes = a.session().get(insurcraft_engine::DocId(doc)).unwrap().bytes.clone();
         for invalid in [json!(1), json!(true), json!({ "page": 1 }), json!(["1"])] {
             for (index, pages) in [json!([invalid, null]), json!([null, invalid])].into_iter().enumerate() {
                 for out in ["combined.pdf", "not-created.pdf"] {
@@ -3448,7 +3448,7 @@ mod combine_argument_tests {
                     assert_eq!(ok(&mut a, "doc_list", json!({})), list);
                     assert_eq!(ok(&mut a, "doc_info", json!({ "doc": doc })), info);
                     assert_eq!(page_text(&mut a, doc), text);
-                    assert_eq!(a.session().get(pdfcraft_engine::DocId(doc)).unwrap().bytes, bytes);
+                    assert_eq!(a.session().get(insurcraft_engine::DocId(doc)).unwrap().bytes, bytes);
                     assert_eq!(std::fs::read(dir.0.join("a.pdf")).unwrap(), first);
                     assert_eq!(std::fs::read(dir.0.join("b.pdf")).unwrap(), second);
                 }
@@ -3567,14 +3567,14 @@ fn conventions_resources() {
         let r = rpc(s, 1, "resources/read", json!({"uri":uri}));
         serde_json::from_str::<Value>(r["result"]["contents"][0]["text"].as_str().expect("JSON resource")).unwrap()
     };
-    assert_eq!(read(&mut s, "pdfcraft://document"), json!({"documents":[]}));
+    assert_eq!(read(&mut s, "insurcraft://document"), json!({"documents":[]}));
     rpc(&mut s, 2, "tools/call", json!({"name":"doc_open","arguments":{"path":"a.pdf"}}));
     let doc = rpc(&mut s, 3, "tools/call", json!({"name":"doc_inspect","arguments":{}}));
-    assert_eq!(read(&mut s, "pdfcraft://document"), doc["result"]["structuredContent"]);
+    assert_eq!(read(&mut s, "insurcraft://document"), doc["result"]["structuredContent"]);
     let commands = rpc(&mut s, 4, "tools/call", json!({"name":"command_list","arguments":{}}));
-    assert_eq!(read(&mut s, "pdfcraft://commands"), commands["result"]["structuredContent"]);
+    assert_eq!(read(&mut s, "insurcraft://commands"), commands["result"]["structuredContent"]);
     // Responses keep the shape every supported protocol revision expects: no cache hints.
-    for (method, params) in [("tools/list", json!({})), ("resources/list", json!({})), ("resources/read", json!({"uri":"pdfcraft://document"}))] {
+    for (method, params) in [("tools/list", json!({})), ("resources/list", json!({})), ("resources/read", json!({"uri":"insurcraft://document"}))] {
         assert!(rpc(&mut s, 5, method, params)["result"].get("resultType").is_none());
     }
     assert_eq!(rpc(&mut s, 7, "initialize", json!({"protocolVersion":"2026-07-28"}))["result"]["protocolVersion"], "2025-06-18");

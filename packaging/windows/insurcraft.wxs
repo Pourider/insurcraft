@@ -1,0 +1,148 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  InsurCraft MSI (WiX Toolset v5: `dotnet tool install -g wix`). Built by package.ps1:
+
+    wix build insurcraft.wxs installer-ui.wxs -arch x64 -d Version=1.2.3 -d BinDir=... -d ModelsDir=... -d IconPath=... -o out.msi
+
+  Per-machine install into Program Files, a Start Menu shortcut, a desktop shortcut (on by default,
+  optional), an App Paths entry, and InsurCraft registered as a PDF handler (offered under "Open with"
+  and in Default apps, never forced as the default). Files opened with InsurCraft arrive on its
+  command line.
+-->
+<Wix xmlns="http://wixtoolset.org/schemas/v4/wxs">
+  <Package
+      Name="InsurCraft"
+      Manufacturer="Insur S.A."
+      Version="$(var.Version)"
+      UpgradeCode="1AD60EAE-D318-47E0-8658-D84C89CABE81"
+      Scope="perMachine"
+      Compressed="yes"
+      Language="1033">
+    <SummaryInformation Description="InsurCraft PDF workbench" Manufacturer="Insur S.A." />
+    <!-- HKLM registrations must never point into a per-user installation (#305). Allow removal
+         of an existing installation even if an older MSI let it install per-user. -->
+    <Launch Condition="ALLUSERS = 1 OR (Installed AND REMOVE = &quot;ALL&quot;)"
+        Message="InsurCraft must be installed for all users. Run setup with administrator privileges and ALLUSERS=1; per-user installation is not supported." />
+    <!-- Same-version upgrades let successive pre-releases of one X.Y.Z replace each other
+         (MSI versions are numeric, so 1.2.3-rc.1 and 1.2.3-rc.2 are both 1.2.3). -->
+    <MajorUpgrade AllowSameVersionUpgrades="yes"
+        DowngradeErrorMessage="A newer version of InsurCraft is already installed." />
+    <MediaTemplate EmbedCab="yes" CompressionLevel="high" />
+
+    <!-- Windows Installer requires an Icon id ending in .ico or .exe, or advertised shortcuts and
+         Add/Remove Programs show a blank icon (#57). -->
+    <Icon Id="InsurcraftIcon.ico" SourceFile="$(var.IconPath)" />
+    <Property Id="ARPPRODUCTICON" Value="InsurcraftIcon.ico" />
+    <Property Id="ARPURLINFOABOUT" Value="https://__OWNER__.github.io/insurcraft" />
+    <Property Id="ARPURLUPDATEINFO" Value="https://__OWNER__.github.io/insurcraft" />
+    <Property Id="ARPHELPLINK" Value="https://github.com/__OWNER__/insurcraft/issues" />
+    <!-- Desktop shortcut (#143): on by default, a checkbox in the full-UI welcome dialog, and
+         INSTALLDESKTOPSHORTCUT=0 on the msiexec command line for unattended installs. Secure, so the
+         choice made in the (unelevated) UI reaches the elevated install. -->
+    <Property Id="INSTALLDESKTOPSHORTCUT" Value="1" Secure="yes" />
+    <UIRef Id="InsurcraftInstallerUI" />
+
+    <StandardDirectory Id="ProgramFiles6432Folder">
+      <Directory Id="INSTALLFOLDER" Name="InsurCraft">
+        <Directory Id="ModelsFolder" Name="models" />
+      </Directory>
+    </StandardDirectory>
+    <StandardDirectory Id="ProgramMenuFolder" />
+    <StandardDirectory Id="DesktopFolder" />
+
+    <Feature Id="Main" Title="InsurCraft" Level="1">
+      <ComponentGroupRef Id="InsurcraftFiles" />
+      <ComponentGroupRef Id="InsurcraftModels" />
+    </Feature>
+  </Package>
+
+  <Fragment>
+    <ComponentGroup Id="InsurcraftFiles" Directory="INSTALLFOLDER">
+      <Component Id="InsurcraftApp" Guid="B22691FC-AA0C-4225-900B-D1FAFF500BBF">
+        <File Id="InsurcraftExe" Source="$(var.BinDir)\insurcraft.exe" KeyPath="yes" />
+
+        <RegistryValue Root="HKLM" Key="Software\Microsoft\Windows\CurrentVersion\App Paths\insurcraft.exe" Value="[#InsurcraftExe]" Type="string" />
+
+        <!-- PDF files (#107): InsurCraft is offered under "Open with" and in Settings ▸ Default
+             apps, through Windows' Default Programs registration (a ProgID, OpenWithProgids,
+             Capabilities and RegisteredApplications). It never takes over an existing default:
+             .pdf's own default value is left alone, and the user chooses. Without this, the only
+             InsurCraft entry to pick was the advertised Start Menu shortcut, which Windows can't
+             run as a file handler ("This app can't run on your PC"). -->
+        <RegistryValue Root="HKLM" Key="Software\Classes\InsurCraft.Document" Value="PDF Document" Type="string" />
+        <RegistryValue Root="HKLM" Key="Software\Classes\InsurCraft.Document\DefaultIcon" Value="[#InsurcraftExe],0" Type="string" />
+        <RegistryValue Root="HKLM" Key="Software\Classes\InsurCraft.Document\shell\open\command" Value="&quot;[#InsurcraftExe]&quot; &quot;%1&quot;" Type="string" />
+        <RegistryValue Root="HKLM" Key="Software\Classes\.pdf\OpenWithProgids" Name="InsurCraft.Document" Value="" Type="string" />
+        <RegistryValue Root="HKLM" Key="Software\Classes\Applications\insurcraft.exe" Name="FriendlyAppName" Value="InsurCraft" Type="string" />
+        <RegistryValue Root="HKLM" Key="Software\Classes\Applications\insurcraft.exe\SupportedTypes" Name=".pdf" Value="" Type="string" />
+        <RegistryValue Root="HKLM" Key="Software\Classes\Applications\insurcraft.exe\shell\open\command" Value="&quot;[#InsurcraftExe]&quot; &quot;%1&quot;" Type="string" />
+        <RegistryValue Root="HKLM" Key="Software\InsurCraft\Capabilities" Name="ApplicationName" Value="InsurCraft" Type="string" />
+        <RegistryValue Root="HKLM" Key="Software\InsurCraft\Capabilities" Name="ApplicationDescription" Value="Open-source PDF workbench" Type="string" />
+        <RegistryValue Root="HKLM" Key="Software\InsurCraft\Capabilities" Name="ApplicationIcon" Value="[#InsurcraftExe],0" Type="string" />
+        <RegistryValue Root="HKLM" Key="Software\InsurCraft\Capabilities\FileAssociations" Name=".pdf" Value="InsurCraft.Document" Type="string" />
+        <RegistryValue Root="HKLM" Key="Software\RegisteredApplications" Name="InsurCraft" Value="Software\InsurCraft\Capabilities" Type="string" />
+
+        <!-- Image context menu (#190): convert without changing image file defaults. -->
+        <RegistryValue Root="HKLM" Key="Software\Classes\SystemFileAssociations\.png\shell\InsurCraft.CreatePdf" Value="Create PDF with InsurCraft…" Type="string" />
+        <RegistryValue Root="HKLM" Key="Software\Classes\SystemFileAssociations\.png\shell\InsurCraft.CreatePdf" Name="MultiSelectModel" Value="Single" Type="string" />
+        <RegistryValue Root="HKLM" Key="Software\Classes\SystemFileAssociations\.png\shell\InsurCraft.CreatePdf\command" Value="&quot;[#InsurcraftExe]&quot; --create-images &quot;%1&quot;" Type="string" />
+        <RegistryValue Root="HKLM" Key="Software\Classes\SystemFileAssociations\.jpg\shell\InsurCraft.CreatePdf" Value="Create PDF with InsurCraft…" Type="string" />
+        <RegistryValue Root="HKLM" Key="Software\Classes\SystemFileAssociations\.jpg\shell\InsurCraft.CreatePdf" Name="MultiSelectModel" Value="Single" Type="string" />
+        <RegistryValue Root="HKLM" Key="Software\Classes\SystemFileAssociations\.jpg\shell\InsurCraft.CreatePdf\command" Value="&quot;[#InsurcraftExe]&quot; --create-images &quot;%1&quot;" Type="string" />
+        <RegistryValue Root="HKLM" Key="Software\Classes\SystemFileAssociations\.jpeg\shell\InsurCraft.CreatePdf" Value="Create PDF with InsurCraft…" Type="string" />
+        <RegistryValue Root="HKLM" Key="Software\Classes\SystemFileAssociations\.jpeg\shell\InsurCraft.CreatePdf" Name="MultiSelectModel" Value="Single" Type="string" />
+        <RegistryValue Root="HKLM" Key="Software\Classes\SystemFileAssociations\.jpeg\shell\InsurCraft.CreatePdf\command" Value="&quot;[#InsurcraftExe]&quot; --create-images &quot;%1&quot;" Type="string" />
+        <RegistryValue Root="HKLM" Key="Software\Classes\SystemFileAssociations\.tif\shell\InsurCraft.CreatePdf" Value="Create PDF with InsurCraft…" Type="string" />
+        <RegistryValue Root="HKLM" Key="Software\Classes\SystemFileAssociations\.tif\shell\InsurCraft.CreatePdf" Name="MultiSelectModel" Value="Single" Type="string" />
+        <RegistryValue Root="HKLM" Key="Software\Classes\SystemFileAssociations\.tif\shell\InsurCraft.CreatePdf\command" Value="&quot;[#InsurcraftExe]&quot; --create-images &quot;%1&quot;" Type="string" />
+        <RegistryValue Root="HKLM" Key="Software\Classes\SystemFileAssociations\.tiff\shell\InsurCraft.CreatePdf" Value="Create PDF with InsurCraft…" Type="string" />
+        <RegistryValue Root="HKLM" Key="Software\Classes\SystemFileAssociations\.tiff\shell\InsurCraft.CreatePdf" Name="MultiSelectModel" Value="Single" Type="string" />
+        <RegistryValue Root="HKLM" Key="Software\Classes\SystemFileAssociations\.tiff\shell\InsurCraft.CreatePdf\command" Value="&quot;[#InsurcraftExe]&quot; --create-images &quot;%1&quot;" Type="string" />
+        <RegistryValue Root="HKLM" Key="Software\Classes\SystemFileAssociations\.gif\shell\InsurCraft.CreatePdf" Value="Create PDF with InsurCraft…" Type="string" />
+        <RegistryValue Root="HKLM" Key="Software\Classes\SystemFileAssociations\.gif\shell\InsurCraft.CreatePdf" Name="MultiSelectModel" Value="Single" Type="string" />
+        <RegistryValue Root="HKLM" Key="Software\Classes\SystemFileAssociations\.gif\shell\InsurCraft.CreatePdf\command" Value="&quot;[#InsurcraftExe]&quot; --create-images &quot;%1&quot;" Type="string" />
+        <RegistryValue Root="HKLM" Key="Software\Classes\SystemFileAssociations\.bmp\shell\InsurCraft.CreatePdf" Value="Create PDF with InsurCraft…" Type="string" />
+        <RegistryValue Root="HKLM" Key="Software\Classes\SystemFileAssociations\.bmp\shell\InsurCraft.CreatePdf" Name="MultiSelectModel" Value="Single" Type="string" />
+        <RegistryValue Root="HKLM" Key="Software\Classes\SystemFileAssociations\.bmp\shell\InsurCraft.CreatePdf\command" Value="&quot;[#InsurcraftExe]&quot; --create-images &quot;%1&quot;" Type="string" />
+        <RegistryValue Root="HKLM" Key="Software\Classes\SystemFileAssociations\.jp2\shell\InsurCraft.CreatePdf" Value="Create PDF with InsurCraft…" Type="string" />
+        <RegistryValue Root="HKLM" Key="Software\Classes\SystemFileAssociations\.jp2\shell\InsurCraft.CreatePdf" Name="MultiSelectModel" Value="Single" Type="string" />
+        <RegistryValue Root="HKLM" Key="Software\Classes\SystemFileAssociations\.jp2\shell\InsurCraft.CreatePdf\command" Value="&quot;[#InsurcraftExe]&quot; --create-images &quot;%1&quot;" Type="string" />
+        <RegistryValue Root="HKLM" Key="Software\Classes\SystemFileAssociations\.j2k\shell\InsurCraft.CreatePdf" Value="Create PDF with InsurCraft…" Type="string" />
+        <RegistryValue Root="HKLM" Key="Software\Classes\SystemFileAssociations\.j2k\shell\InsurCraft.CreatePdf" Name="MultiSelectModel" Value="Single" Type="string" />
+        <RegistryValue Root="HKLM" Key="Software\Classes\SystemFileAssociations\.j2k\shell\InsurCraft.CreatePdf\command" Value="&quot;[#InsurcraftExe]&quot; --create-images &quot;%1&quot;" Type="string" />
+        <RegistryValue Root="HKLM" Key="Software\Classes\SystemFileAssociations\.jpx\shell\InsurCraft.CreatePdf" Value="Create PDF with InsurCraft…" Type="string" />
+        <RegistryValue Root="HKLM" Key="Software\Classes\SystemFileAssociations\.jpx\shell\InsurCraft.CreatePdf" Name="MultiSelectModel" Value="Single" Type="string" />
+        <RegistryValue Root="HKLM" Key="Software\Classes\SystemFileAssociations\.jpx\shell\InsurCraft.CreatePdf\command" Value="&quot;[#InsurcraftExe]&quot; --create-images &quot;%1&quot;" Type="string" />
+      </Component>
+
+      <!-- Shortcuts (#143) are plain links to insurcraft.exe, not advertised MSI shortcuts: advertised
+           ones point at a Windows Installer descriptor rather than the program, which Windows can't
+           use as a file handler (#107), and 0.2.1's advertised one went missing from the Start menu
+           (#143). Each has its own component with an HKLM key path, so Windows Installer removes it
+           on uninstall; in this per-machine package both folders are the all-users ones. -->
+      <Component Id="InsurcraftStartMenuShortcut" Directory="ProgramMenuFolder" Guid="45126C07-B38C-48F2-932A-9C352804F470">
+        <Shortcut Id="StartMenuShortcut" Name="InsurCraft" Description="InsurCraft PDF workbench"
+            Target="[#InsurcraftExe]" WorkingDirectory="INSTALLFOLDER" Icon="InsurcraftIcon.ico" IconIndex="0" />
+        <RegistryValue Root="HKLM" Key="Software\InsurCraft\Shortcuts" Name="StartMenu" Type="integer" Value="1" KeyPath="yes" />
+      </Component>
+
+      <Component Id="InsurcraftDesktopShortcut" Directory="DesktopFolder" Guid="63A8F71C-787D-47A2-8167-0A8F6DC586A8"
+          Condition="INSTALLDESKTOPSHORTCUT = 1">
+        <Shortcut Id="DesktopShortcut" Name="InsurCraft" Description="InsurCraft PDF workbench"
+            Target="[#InsurcraftExe]" WorkingDirectory="INSTALLFOLDER" Icon="InsurcraftIcon.ico" IconIndex="0" />
+        <RegistryValue Root="HKLM" Key="Software\InsurCraft\Shortcuts" Name="Desktop" Type="integer" Value="1" KeyPath="yes" />
+      </Component>
+
+      <Component Id="InsurcraftCli">
+        <File Id="InsurcraftCliExe" Source="$(var.BinDir)\insurcraft-cli.exe" KeyPath="yes" />
+      </Component>
+    </ComponentGroup>
+
+    <!-- OCR models (#103), with their licences and ATTRIBUTION.txt, in models\ beside insurcraft.exe
+         where the app looks for them: every file `cargo xtask models` fetched (package.ps1), one
+         component each, so new models ship without naming them here. -->
+    <ComponentGroup Id="InsurcraftModels" Directory="ModelsFolder">
+      <Files Include="$(var.ModelsDir)\*" />
+    </ComponentGroup>
+  </Fragment>
+</Wix>

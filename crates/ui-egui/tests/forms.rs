@@ -1,11 +1,11 @@
 //! Filling in a form in the real shell (egui_kittest): typing, Tab, check boxes, radios, choices.
 
 use egui_kittest::Harness;
-use pdfcraft_ui_egui::PdfCraftApp;
+use insurcraft_ui_egui::InsurCraftApp;
 
-fn harness() -> Harness<'static, PdfCraftApp> {
+fn harness() -> Harness<'static, InsurCraftApp> {
     let mut h = Harness::builder().with_size(egui::vec2(1400.0, 900.0)).build_eframe(|_cc| {
-        let mut app = PdfCraftApp::new();
+        let mut app = InsurCraftApp::new();
         app.set_option("language", "en").unwrap();
         app.open_bytes("form.pdf", None, include_bytes!("data/form.pdf").to_vec()).unwrap();
         app.set_option("left", "closed").unwrap();
@@ -23,18 +23,18 @@ fn harness() -> Harness<'static, PdfCraftApp> {
     h
 }
 
-fn value(h: &Harness<'static, PdfCraftApp>, name: &str) -> Vec<String> {
+fn value(h: &Harness<'static, InsurCraftApp>, name: &str) -> Vec<String> {
     let s = h.state();
     s.session.get(s.views[0].id).unwrap().form.iter().find(|f| f.name == name).unwrap().value.clone()
 }
 
 /// Click the centre of a field's widget.
-fn click_field(h: &mut Harness<'static, PdfCraftApp>, name: &str, widget: usize) {
+fn click_field(h: &mut Harness<'static, InsurCraftApp>, name: &str, widget: usize) {
     let p = {
         let s = h.state();
         let doc = s.session.get(s.views[0].id).unwrap();
         let f = doc.form.iter().find(|f| f.name == name).unwrap();
-        pdfcraft_ui_egui::forms_ui::field_screen_rect(&s.views[0], &doc.info, f, widget).expect("on screen").center()
+        insurcraft_ui_egui::forms_ui::field_screen_rect(&s.views[0], &doc.info, f, widget).expect("on screen").center()
     };
     h.hover_at(p);
     h.run_steps(1);
@@ -126,10 +126,10 @@ fn tabbing_into_a_filled_field_selects_it_so_typing_replaces() {
 fn date_fields_offer_a_calendar() {
     use egui_kittest::kittest::Queryable;
     let mut h = harness();
-    h.state_mut().apply_edit(pdfcraft_engine::Edit::AddField {
+    h.state_mut().apply_edit(insurcraft_engine::Edit::AddField {
         page: 0,
         rect: [50.0, 40.0, 200.0, 60.0],
-        kind: pdfcraft_engine::NewField::Date,
+        kind: insurcraft_engine::NewField::Date,
         name: Some("due".into()),
     });
     h.run_steps(4);
@@ -148,14 +148,14 @@ fn date_fields_offer_a_calendar() {
 
 /// The value of `name` in a saved PDF, read back by opening it in a fresh app.
 fn saved_value(path: &std::path::Path, name: &str) -> Vec<String> {
-    let mut app = PdfCraftApp::new();
+    let mut app = InsurCraftApp::new();
     app.set_option("language", "en").unwrap();
     app.open_bytes("saved.pdf", None, std::fs::read(path).unwrap()).unwrap();
     app.session.get(app.views[0].id).unwrap().form.iter().find(|f| f.name == name).unwrap().value.clone()
 }
 
 fn scratch(name: &str) -> std::path::PathBuf {
-    let dir = std::env::temp_dir().join(format!("pdfcraft-forms-{name}-{}", std::process::id()));
+    let dir = std::env::temp_dir().join(format!("insurcraft-forms-{name}-{}", std::process::id()));
     let _ = std::fs::remove_dir_all(&dir);
     std::fs::create_dir_all(&dir).unwrap();
     dir
@@ -218,13 +218,13 @@ fn key(key: egui::Key, modifiers: egui::Modifiers) -> egui::Event {
 }
 
 /// Deliver `events` together, in one frame.
-fn one_frame(h: &mut Harness<'static, PdfCraftApp>, events: Vec<egui::Event>) {
+fn one_frame(h: &mut Harness<'static, InsurCraftApp>, events: Vec<egui::Event>) {
     h.input_mut().events.extend(events);
     h.run_steps(1);
 }
 
 /// Type `text` into field `name`, then press ⌘S in the same frame as `last` (more input).
-fn type_then_save_in_one_frame(h: &mut Harness<'static, PdfCraftApp>, name: &str, text: &str, last: egui::Event, out: &std::path::Path) {
+fn type_then_save_in_one_frame(h: &mut Harness<'static, InsurCraftApp>, name: &str, text: &str, last: egui::Event, out: &std::path::Path) {
     click_field(h, name, 0);
     h.event(egui::Event::Text(text.into()));
     h.run_steps(2);
@@ -311,7 +311,7 @@ fn a_rejected_value_keeps_the_typing_and_stops_the_save() {
     let dir = scratch("rejected");
     let out = dir.join("saved.pdf");
     let mut h = Harness::builder().with_size(egui::vec2(1400.0, 900.0)).build_eframe(|_cc| {
-        let mut app = PdfCraftApp::new();
+        let mut app = InsurCraftApp::new();
         app.set_option("language", "en").unwrap();
         app.open_bytes("order.pdf", None, validated_form()).unwrap();
         app.set_option("left", "closed").unwrap();
@@ -358,7 +358,7 @@ fn a_value_refused_on_enter_keeps_save_in_the_same_frame_from_running() {
     let dir = scratch("enter-refused");
     let out = dir.join("saved.pdf");
     let mut h = Harness::builder().with_size(egui::vec2(1400.0, 900.0)).build_eframe(|_cc| {
-        let mut app = PdfCraftApp::new();
+        let mut app = InsurCraftApp::new();
         app.set_option("language", "en").unwrap();
         app.open_bytes("order.pdf", None, validated_form()).unwrap();
         app.set_option("left", "closed").unwrap();
@@ -393,9 +393,9 @@ fn flattening_while_typing_flattens_the_typed_text() {
     let s = h.state();
     let doc = s.session.get(s.views[0].id).unwrap();
     assert!(doc.form.iter().all(|f| f.name != "name"), "the field is flattened");
-    let mut r = pdfcraft_render::PageRenderer::new(doc.bytes.clone(), Default::default());
+    let mut r = insurcraft_render::PageRenderer::new(doc.bytes.clone(), Default::default());
     let text = r
-        .render(pdfcraft_render::RenderRequest { page: 0, kind: pdfcraft_render::RequestKind::Text, scale: 1.0, ..Default::default() })
+        .render(insurcraft_render::RenderRequest { page: 0, kind: insurcraft_render::RequestKind::Text, scale: 1.0, ..Default::default() })
         .text
         .map(|t| t.plain_text())
         .unwrap_or_default();
@@ -414,7 +414,7 @@ mod revert_tests {
         fn new() -> Self {
             static NEXT: AtomicU64 = AtomicU64::new(0);
             for _ in 0..128 {
-                let path = std::env::temp_dir().join(format!("pdfcraft-revert-{}-{}", std::process::id(), NEXT.fetch_add(1, Ordering::Relaxed)));
+                let path = std::env::temp_dir().join(format!("insurcraft-revert-{}-{}", std::process::id(), NEXT.fetch_add(1, Ordering::Relaxed)));
                 match std::fs::create_dir(&path) {
                     Ok(()) => return Self(path),
                     Err(error) if error.kind() == std::io::ErrorKind::AlreadyExists => continue,
@@ -435,17 +435,17 @@ mod revert_tests {
         let dir = RevertDir::new();
         let path = dir.0.join("saved.pdf");
         let mut h = harness();
-        assert!(h.state_mut().apply_edit(pdfcraft_engine::Edit::SetFieldValue {
+        assert!(h.state_mut().apply_edit(insurcraft_engine::Edit::SetFieldValue {
             name: "name".into(),
-            value: pdfcraft_engine::FieldValue::Text("Saved original".into()),
+            value: insurcraft_engine::FieldValue::Text("Saved original".into()),
         }));
         h.state_mut().save_override = Some(path.to_string_lossy().into_owned());
-        assert!(h.state_mut().save_active(pdfcraft_ui_egui::SaveTarget::InPlace));
+        assert!(h.state_mut().save_active(insurcraft_ui_egui::SaveTarget::InPlace));
         let saved = std::fs::read(&path).unwrap();
-        assert!(h.state_mut().apply_edit(pdfcraft_engine::Edit::SetFieldProps {
+        assert!(h.state_mut().apply_edit(insurcraft_engine::Edit::SetFieldProps {
             name: "name".into(),
-            props: Box::new(pdfcraft_engine::FieldProps {
-                validate: Some(pdfcraft_engine::form_scripts::Validate::Range { min: Some(0.0), max: Some(10.0) }),
+            props: Box::new(insurcraft_engine::FieldProps {
+                validate: Some(insurcraft_engine::form_scripts::Validate::Range { min: Some(0.0), max: Some(10.0) }),
                 ..Default::default()
             }),
         }));
@@ -465,12 +465,12 @@ mod revert_tests {
         assert!(h.state().views[0].forms.focus.is_none() && h.state().views[0].pending_edit.is_none());
         assert_eq!(h.state().first_dirty(), None, "Revert discards rejected typing too");
         assert_eq!(value(&h, "name"), ["Saved original"]);
-        assert!(h.state_mut().save_active(pdfcraft_ui_egui::SaveTarget::InPlace));
+        assert!(h.state_mut().save_active(insurcraft_ui_egui::SaveTarget::InPlace));
         assert_eq!(saved_value(&path, "name"), ["Saved original"]);
         let bytes = std::fs::read(&path).unwrap();
         assert_eq!(bytes, saved, "later Save cannot resurrect the discarded draft");
-        let mut renderer = pdfcraft_render::PageRenderer::new(std::sync::Arc::new(bytes), Default::default());
-        let output = renderer.render(pdfcraft_render::RenderRequest { page: 0, kind: pdfcraft_render::RequestKind::Text, ..Default::default() });
+        let mut renderer = insurcraft_render::PageRenderer::new(std::sync::Arc::new(bytes), Default::default());
+        let output = renderer.render(insurcraft_render::RenderRequest { page: 0, kind: insurcraft_render::RequestKind::Text, ..Default::default() });
         assert!(output.error.is_none(), "saved appearance is readable: {:?}", output.error);
         assert!(output.text.unwrap().plain_text().contains("Saved original"), "saved AP still draws the original value");
     }

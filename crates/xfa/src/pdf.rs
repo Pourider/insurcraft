@@ -4,8 +4,8 @@
 
 use std::collections::{BTreeMap, HashMap};
 
-use pdfcraft_cos::{Dict, Document, ObjRef, Object, PdfString, Stream};
-use pdfcraft_fonts::{literal, win_ansi};
+use insurcraft_cos::{Dict, Document, ObjRef, Object, PdfString, Stream};
+use insurcraft_fonts::{literal, win_ansi};
 
 use crate::XfaError;
 use crate::layout::{Action, BorderShape, Form, Item, Page, Widget, WidgetKind};
@@ -18,7 +18,7 @@ pub const SOM_KEY: &[u8] = b"PCSom";
 /// laid out again.
 pub const LAYOUT_KEY: &[u8] = b"PCXfaLayout";
 /// Private key on generated push buttons whose template has a click script: the button has no
-/// PDF action (the script is XFA's, not Acrobat JavaScript); PdfCraft runs the script by the
+/// PDF action (the script is XFA's, not Acrobat JavaScript); InsurCraft runs the script by the
 /// field's SOM path.
 pub const CLICK_KEY: &[u8] = b"PCXfaClick";
 
@@ -365,7 +365,7 @@ impl Emitter<'_> {
                 mk.set(b"CA".to_vec(), Object::String(PdfString::text(caption)));
                 if let Some(Action::Script(_)) = &w.action {
                     // An XFA click script is no Acrobat JavaScript: no PDF action, which other
-                    // viewers would run; PdfCraft finds the script by the field's SOM path.
+                    // viewers would run; InsurCraft finds the script by the field's SOM path.
                     d.set(CLICK_KEY.to_vec(), Object::Bool(true));
                 } else if let Some(a) = &w.action {
                     let mut ad = Dict::new();

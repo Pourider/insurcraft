@@ -7,8 +7,8 @@ use std::sync::{
     atomic::{AtomicBool, Ordering},
 };
 
+use insurcraft_cos::{Document, Object as CosObject};
 use lopdf::{Dictionary, Error, Object, ObjectId, Result};
-use pdfcraft_cos::{Document, Object as CosObject};
 
 pub(crate) trait Structure {
     fn trailer(&self) -> &Dictionary;
@@ -176,7 +176,7 @@ impl Structure for LazyStructure {
     }
 }
 
-fn convert_dict(dict: &pdfcraft_cos::Dict, depth: usize) -> Result<Dictionary> {
+fn convert_dict(dict: &insurcraft_cos::Dict, depth: usize) -> Result<Dictionary> {
     if depth > 100 {
         return Err(Error::RecursionLimit);
     }
@@ -222,7 +222,7 @@ mod tests {
         let mut bytes = Vec::new();
         source.save_to(&mut bytes).unwrap();
         let cos = Document::open(Arc::new(bytes)).unwrap();
-        let compressed = pdfcraft_cos::write_full(&cos, &pdfcraft_cos::SaveOptions::default()).unwrap();
+        let compressed = insurcraft_cos::write_full(&cos, &insurcraft_cos::SaveOptions::default()).unwrap();
         let expected = lopdf::Document::load_mem(&compressed).unwrap().get_pages();
         let view = LazyStructure::new(Arc::new(compressed), None).unwrap();
         assert_eq!(view.get_pages().len(), 1);

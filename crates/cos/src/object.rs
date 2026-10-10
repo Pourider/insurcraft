@@ -3,7 +3,7 @@
 //! Dictionaries keep their key order so rewritten objects stay recognisable in diffs and
 //! byte-stable when re-serialized. Streams keep their *encoded* bytes; decoding is on demand.
 
-use pdfcraft_filters::{Filter, Params};
+use insurcraft_filters::{Filter, Params};
 
 use crate::{Bytes, CosError};
 
@@ -183,7 +183,7 @@ impl Stream {
     pub fn flate(mut dict: Dict, data: &[u8]) -> Self {
         dict.set(b"Filter".to_vec(), Object::Name(b"FlateDecode".to_vec()));
         dict.remove(b"DecodeParms");
-        Self { dict, raw: pdfcraft_filters::encode_flate(data).into() }
+        Self { dict, raw: insurcraft_filters::encode_flate(data).into() }
     }
 
     /// The filter chain declared in the dictionary.
@@ -232,7 +232,7 @@ impl Stream {
         if chain.is_empty() {
             return self.raw_within(max);
         }
-        pdfcraft_filters::decode_tolerant(&chain, &self.raw, max.min(MAX_DECODED)).map(|(v, _)| v).map_err(|e| CosError::Filter(e.to_string()))
+        insurcraft_filters::decode_tolerant(&chain, &self.raw, max.min(MAX_DECODED)).map(|(v, _)| v).map_err(|e| CosError::Filter(e.to_string()))
     }
 
     /// Decoded data, bounded by [`MAX_DECODED`]; any corruption is an error.
@@ -241,7 +241,7 @@ impl Stream {
         if chain.is_empty() {
             return self.raw_within(MAX_DECODED);
         }
-        pdfcraft_filters::decode(&chain, &self.raw, MAX_DECODED).map_err(|e| CosError::Filter(e.to_string()))
+        insurcraft_filters::decode(&chain, &self.raw, MAX_DECODED).map_err(|e| CosError::Filter(e.to_string()))
     }
 
     fn raw_within(&self, max: usize) -> Result<Vec<u8>, CosError> {
@@ -249,7 +249,7 @@ impl Stream {
         // An empty decoder chain still produces an owned output buffer: check its limit
         // before cloning, including streams whose /Crypt filter was applied on load.
         if self.raw.len() > max {
-            return Err(CosError::Filter(pdfcraft_filters::FilterError::LimitExceeded(max).to_string()));
+            return Err(CosError::Filter(insurcraft_filters::FilterError::LimitExceeded(max).to_string()));
         }
         Ok(self.raw.to_vec())
     }

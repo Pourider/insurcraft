@@ -8,7 +8,7 @@
 
 use std::collections::HashMap;
 
-use pdfcraft_cos::{Dict, Document, ObjRef, Object, PdfString, Stream};
+use insurcraft_cos::{Dict, Document, ObjRef, Object, PdfString, Stream};
 
 use crate::XfaError;
 use crate::packets::{Encoding, encode};
@@ -122,7 +122,7 @@ fn text_of(doc: &Document, d: &Dict, key: &[u8]) -> Option<String> {
     d.get(key).map(|o| doc.resolve(o)).and_then(|o| o.as_string().map(|s| s.to_text()))
 }
 
-/// The SOM path of a field: its `/PCSom` when PdfCraft generated it, else its name.
+/// The SOM path of a field: its `/PCSom` when InsurCraft generated it, else its name.
 fn som_of(doc: &Document, f: &FieldDatum) -> String {
     doc.get(f.obj).as_dict().and_then(|d| text_of(doc, d, crate::pdf::SOM_KEY)).unwrap_or_else(|| f.name.clone())
 }
@@ -494,8 +494,8 @@ enum Within {
     Xdp,
 }
 
-const WRAP_OPEN: &str = "<pdfcraft-wrap xmlns:xfa=\"http://www.xfa.org/schema/xfa-data/1.0/\" xmlns:xdp=\"http://ns.adobe.com/xdp/\">";
-const WRAP_CLOSE: &str = "</pdfcraft-wrap>";
+const WRAP_OPEN: &str = "<insurcraft-wrap xmlns:xfa=\"http://www.xfa.org/schema/xfa-data/1.0/\" xmlns:xdp=\"http://ns.adobe.com/xdp/\">";
+const WRAP_CLOSE: &str = "</insurcraft-wrap>";
 
 /// Write `wants` into the data of the datasets packet in `text`, changing only what has to
 /// change: values go into the data nodes they bind to, missing nodes are added, and everything

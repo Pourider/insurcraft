@@ -1,7 +1,7 @@
-# pdfcraft-forms
+# insurcraft-forms
 
-Interactive forms (AcroForm, ISO 32000-2 §12.7). Layer L3; depends on `pdfcraft-cos` and
-`pdfcraft-fonts`.
+Interactive forms (AcroForm, ISO 32000-2 §12.7). Layer L3; depends on `insurcraft-cos` and
+`insurcraft-fonts`.
 
 ## API
 
@@ -32,7 +32,7 @@ delete_field(&mut doc, "email")?;
   multiline wrapping, password masking, quadding, `/MK` background and border, list-box selection.
   The `/DA` font is used when `/DR` has it as a simple font; otherwise Helvetica (WinAnsi).
 - Check boxes and radio buttons switch `/V` and each widget's `/AS`. Widgets with no appearances
-  get PdfCraft's own (a drawn check mark or dot; no symbol font needed).
+  get InsurCraft's own (a drawn check mark or dot; no symbol font needed).
 - Values are validated (options, `MaxLen`, single vs multi-select, NoToggleToOff, read-only) and a
   failed call changes nothing.
 - `FieldProps::appearance` applies a `LookPatch` independently to each widget. `None` keeps

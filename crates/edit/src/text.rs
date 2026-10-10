@@ -13,10 +13,10 @@
 use std::collections::HashMap;
 use std::rc::Rc;
 
-use pdfcraft_content::{Matrix, Op, Pieces, parse, serialize_ops};
-use pdfcraft_cos::{Dict, Document, Object, PdfString, Stream};
-use pdfcraft_fonts::pdf::Metrics;
-use pdfcraft_fonts::{CraftFont, GlyphError, japanese_glyph_from};
+use insurcraft_content::{Matrix, Op, Pieces, parse, serialize_ops};
+use insurcraft_cos::{Dict, Document, Object, PdfString, Stream};
+use insurcraft_fonts::pdf::Metrics;
+use insurcraft_fonts::{CraftFont, GlyphError, japanese_glyph_from};
 
 use crate::EditError;
 
@@ -73,7 +73,7 @@ impl TextState {
 
     /// Operators that set this state (inside a text object).
     fn ops(&self) -> Vec<Op> {
-        let n = pdfcraft_content::num;
+        let n = insurcraft_content::num;
         let mut v = Vec::new();
         if let Some((f, size)) = &self.font {
             v.push(Op::new("Tf", vec![Object::name(f), n(*size)]));
@@ -218,8 +218,8 @@ fn rewritten_contents(doc: &mut Document, streams: &[(Object, Vec<u8>)], new: Ve
     }
 }
 
-fn page_dict(doc: &Document, page: usize) -> Result<pdfcraft_model::Page, EditError> {
-    pdfcraft_model::pages(doc).into_iter().nth(page).ok_or(EditError::NoSuchPage(page))
+fn page_dict(doc: &Document, page: usize) -> Result<insurcraft_model::Page, EditError> {
+    insurcraft_model::pages(doc).into_iter().nth(page).ok_or(EditError::NoSuchPage(page))
 }
 
 fn fill_color(fill: &[Op]) -> [f64; 3] {
@@ -601,7 +601,7 @@ pub(crate) const MAX_FORM_VISITS: usize = 4096;
 /// A form XObject a page draws: its object, content, resources and its matrix composed with the
 /// CTM at the `Do`.
 pub(crate) struct FormCall {
-    pub(crate) obj: Option<pdfcraft_cos::ObjRef>,
+    pub(crate) obj: Option<insurcraft_cos::ObjRef>,
     pub(crate) data: Vec<u8>,
     pub(crate) resources: Dict,
     pub(crate) ctm: Matrix,
@@ -615,7 +615,7 @@ pub(crate) fn form_call(
     resources: &Dict,
     name: &[u8],
     ctm: Matrix,
-    path: &[pdfcraft_cos::ObjRef],
+    path: &[insurcraft_cos::ObjRef],
     visits: &mut usize,
 ) -> Option<FormCall> {
     if path.len() >= MAX_FORM_DEPTH || *visits >= MAX_FORM_VISITS {
@@ -655,7 +655,7 @@ fn reading_lines(doc: &Document, page: usize) -> Result<Vec<TextLine>, EditError
         doc: &'a Document,
         lines: Vec<TextLine>,
         next_stream: usize,
-        path: Vec<pdfcraft_cos::ObjRef>,
+        path: Vec<insurcraft_cos::ObjRef>,
         visits: usize,
     }
     fn walk(w: &mut Walk, ops: &[Op], resources: &Dict, carry: &mut Carry, stream: usize) {
@@ -709,7 +709,7 @@ fn reading_lines(doc: &Document, page: usize) -> Result<Vec<TextLine>, EditError
 type Encoder = Box<dyn Fn(&str) -> Option<Vec<u8>>>;
 
 fn is_win_ansi_char(c: char) -> bool {
-    c == '\t' || pdfcraft_fonts::win_ansi_byte(c).is_some()
+    c == '\t' || insurcraft_fonts::win_ansi_byte(c).is_some()
 }
 
 fn needs_type3(text: &str) -> bool {
@@ -784,7 +784,7 @@ const SIDE_BEARING: f64 = 0.05;
 /// (one em each, as in JIS X 0208) and have no proportional (`palt`) metrics for them, so a
 /// word set that way reads as letter-spaced. Those letters get their ink width plus a side
 /// bearing instead; everything else keeps the face's own advance.
-fn proportional(ch: char, glyph: &pdfcraft_fonts::GlyphOutline) -> (f64, f64) {
+fn proportional(ch: char, glyph: &insurcraft_fonts::GlyphOutline) -> (f64, f64) {
     let respace = matches!(ch, '\u{0370}'..='\u{03FF}' | '\u{0400}'..='\u{052F}' | '\u{1F00}'..='\u{1FFF}');
     let ink = glyph.bbox[2] - glyph.bbox[0];
     if !respace || glyph.contours.is_empty() || !(ink > 0.0 && ink < glyph.width) {
@@ -802,7 +802,7 @@ fn unicode_hex(ch: char) -> String {
 /// This build has no Japanese face to draw replacement text with.
 fn no_japanese_font() -> EditError {
     EditError::Invalid(
-        "this text needs PdfCraft's Japanese fallback font, which this build doesn't include \
+        "this text needs InsurCraft's Japanese fallback font, which this build doesn't include \
          (official releases do; to build it in, set CRAFT_FONTS_DIR to a craft-fonts checkout)"
             .into(),
     )
@@ -814,7 +814,7 @@ fn fallback_face<'a>(faces: &[&'a CraftFont], chars: &[char], has_glyph: impl Fn
 }
 
 fn type3_font(doc: &mut Document, fonts_res: &mut Dict, text: &str, family: crate::added::Family, bold: bool) -> Result<Type3Fallback, EditError> {
-    let faces = pdfcraft_fonts::document_japanese_fonts_for_style(family == crate::added::Family::Times, bold);
+    let faces = insurcraft_fonts::document_japanese_fonts_for_style(family == crate::added::Family::Times, bold);
     let mut chars = Vec::new();
     for ch in text.chars() {
         if !chars.contains(&ch) {
@@ -931,12 +931,12 @@ pub fn replace_line(doc: &mut Document, page: usize, line: usize, text: &str) ->
                 let bytes = type3_encode(&fallback, &text)
                     .ok_or_else(|| EditError::Invalid(format!("\"{text}\" can't be shown by the Japanese fallback")))?;
                 let size = font_size_before(&ops, first).unwrap_or(target.size);
-                replacement.push(Op::new("Tf", vec![Object::name(&fallback.name), pdfcraft_content::num(size)]));
+                replacement.push(Op::new("Tf", vec![Object::name(&fallback.name), insurcraft_content::num(size)]));
                 replacement.push(Op::new("Tj", vec![Object::String(PdfString::literal(bytes))]));
-                replacement.push(Op::new("Tf", vec![Object::name(&target.font), pdfcraft_content::num(size)]));
+                replacement.push(Op::new("Tf", vec![Object::name(&target.font), insurcraft_content::num(size)]));
                 substituted = Some(format!("{} Type3", fallback.family));
             } else {
-                let win = pdfcraft_fonts::win_ansi(&text);
+                let win = insurcraft_fonts::win_ansi(&text);
                 // WinAnsi turns what it can't show into '?'; refuse rather than print the wrong thing.
                 let back: String = win.iter().map(|b| char::from_u32(u32::from(*b)).unwrap_or('?')).collect();
                 if text.chars().zip(back.chars()).any(|(a, b)| b == '?' && a != '?') {
@@ -947,9 +947,9 @@ pub fn replace_line(doc: &mut Document, page: usize, line: usize, text: &str) ->
                 let family = source_family(&target.base_font);
                 let base = family.base_font(target.bold, target.italic);
                 let substitute_name = format!("PCEd{}", base.replace('-', ""));
-                replacement.push(Op::new("Tf", vec![Object::name(&substitute_name), pdfcraft_content::num(size)]));
+                replacement.push(Op::new("Tf", vec![Object::name(&substitute_name), insurcraft_content::num(size)]));
                 replacement.push(Op::new("Tj", vec![Object::String(PdfString::literal(win))]));
-                replacement.push(Op::new("Tf", vec![Object::name(&target.font), pdfcraft_content::num(size)]));
+                replacement.push(Op::new("Tf", vec![Object::name(&target.font), insurcraft_content::num(size)]));
                 substituted = Some(base.to_string());
                 let mut f = Dict::new();
                 f.set(b"Type".to_vec(), Object::name("Font"));
@@ -1171,8 +1171,8 @@ pub fn rewrite_block(doc: &mut Document, page: usize, block: usize, text: Option
     let std_width = move |s: &str, size: f64| -> f64 {
         match family {
             crate::added::Family::Courier => s.chars().count() as f64 * 0.6 * size,
-            crate::added::Family::Times => pdfcraft_fonts::helvetica_width(s, size) * 0.92,
-            crate::added::Family::Helvetica => pdfcraft_fonts::helvetica_width(s, size) * if bold { 1.05 } else { 1.0 },
+            crate::added::Family::Times => insurcraft_fonts::helvetica_width(s, size) * 0.92,
+            crate::added::Family::Helvetica => insurcraft_fonts::helvetica_width(s, size) * if bold { 1.05 } else { 1.0 },
         }
     };
     let [dx, dy] = style.offset.unwrap_or([0.0, 0.0]);
@@ -1218,7 +1218,7 @@ pub fn rewrite_block(doc: &mut Document, page: usize, block: usize, text: Option
         substituted = Some(format!("{} Type3", fallback.family));
         (name, Box::new(move |s: &str| type3_encode(&encoder, s)))
     } else {
-        let win = pdfcraft_fonts::win_ansi(&text);
+        let win = insurcraft_fonts::win_ansi(&text);
         let back: String = win.iter().map(|c| char::from_u32(u32::from(*c)).unwrap_or('?')).collect();
         let base = family.base_font(bold, italic);
         if text.chars().zip(back.chars()).any(|(a, c)| c == '?' && a != '?') {
@@ -1234,7 +1234,7 @@ pub fn rewrite_block(doc: &mut Document, page: usize, block: usize, text: Option
         if style.family.is_none() {
             substituted = Some(base.to_string());
         }
-        (name, Box::new(|s: &str| Some(pdfcraft_fonts::win_ansi(s))))
+        (name, Box::new(|s: &str| Some(insurcraft_fonts::win_ansi(s))))
     };
     // Line spacing in text space: the paragraph's own (scaled with the size), or 1.2 × the size.
     let lead = match style.line_spacing {
@@ -1243,7 +1243,7 @@ pub fn rewrite_block(doc: &mut Document, page: usize, block: usize, text: Option
         None if o_state.leading > 0.0 => o_state.leading,
         None => size * 1.2,
     };
-    let n = pdfcraft_content::num;
+    let n = insurcraft_content::num;
     // In its own graphics state, so a new colour (or anything else) stops at the paragraph.
     let mut block_ops = vec![Op::new("q", vec![])];
     // Moved: a translation inside that state. The move is in page space, so it is taken back

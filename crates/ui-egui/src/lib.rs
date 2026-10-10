@@ -1,9 +1,9 @@
-//! pdfcraft-ui-egui — the first PdfCraft shell (L7).
+//! insurcraft-ui-egui — the first InsurCraft shell (L7).
 //!
 //! Layout grammar follows plan/acrobat/02-ui-ux.md §1: tab strip, mode bar, left tool panel,
 //! floating quick-action bar, document area, right panel + right rail with page navigation.
 //! Everything here is presentation: documents, rendering and the tool catalogue live in
-//! `pdfcraft-engine`.
+//! `insurcraft-engine`.
 
 #![deny(clippy::unwrap_used, clippy::expect_used, clippy::panic, clippy::unimplemented, clippy::todo, clippy::unreachable)]
 
@@ -87,14 +87,14 @@ mod redact_ui;
 pub use redact_ui::{HiddenDraft, PagesDraft as RedactPagesDraft, RedactPrefs, SearchDraft as RedactSearchDraft, SearchMode as RedactSearchMode};
 pub mod i18n;
 
-/// [`PdfCraftApp::date_text`] for callers that already borrow other parts of the app.
+/// [`InsurCraftApp::date_text`] for callers that already borrow other parts of the app.
 pub(crate) fn date_text(session: &Session, fmt: Option<&str>) -> Result<String, String> {
     let lang = session.date_language().unwrap_or(i18n::current().code());
     session.today_text(fmt, Some(lang))
 }
 
 /// Today in Preferences ▸ Date format for stamping into a PDF; refused when it has characters
-/// Fill & Sign can't write yet (see [`pdfcraft_engine::dates::unwritable`]).
+/// Fill & Sign can't write yet (see [`insurcraft_engine::dates::unwritable`]).
 pub(crate) fn date_text_for_pdf(session: &Session) -> Result<String, String> {
     let lang = session.date_language().unwrap_or(i18n::current().code());
     session.today_text_for_pdf(None, Some(lang))
@@ -113,7 +113,7 @@ pub mod updates;
 mod wheel_pager;
 mod widgets;
 
-use pdfcraft_engine::{DocId, Session};
+use insurcraft_engine::{DocId, Session};
 
 pub use canvas::{DocView, RasterMemory};
 pub use editing::{CloseRequest, SaveTarget};
@@ -192,7 +192,7 @@ pub enum QuickTool {
     /// Edit a PDF ▸ Edit text: click a line of existing text to edit it.
     EditText,
     /// Add a stamp: click to place this stamp.
-    Stamp(pdfcraft_engine::StampKind),
+    Stamp(insurcraft_engine::StampKind),
     /// A custom stamp from the library (its index).
     CustomStamp(usize),
     /// Edit a PDF ▸ Link: draw link areas, select and edit links.
@@ -209,7 +209,7 @@ pub enum QuickTool {
 
 /// Files dropped on a document's page grid.
 struct GridDrop {
-    doc: pdfcraft_engine::DocId,
+    doc: insurcraft_engine::DocId,
     files: Vec<(String, Vec<u8>)>,
     /// When to stop waiting for the pointer (egui time, seconds).
     deadline: f64,
@@ -229,7 +229,7 @@ pub enum Dialog {
     /// Set Page Boxes (crop, trim, bleed, art, media).
     PageBoxes,
     /// Add / Update Header and Footer, Watermark, Background.
-    Marks(pdfcraft_engine::MarkKind),
+    Marks(insurcraft_engine::MarkKind),
     /// Export a PDF ▸ Image / Text.
     Export(export_ui::ExportKind),
     /// Fill & Sign ▸ Create signature (the drawing pad).
@@ -359,7 +359,7 @@ pub struct RecentFile {
     pub size: usize,
 }
 
-pub struct PdfCraftApp {
+pub struct InsurCraftApp {
     pub session: Session,
     pub views: Vec<DocView>,
     /// `None` shows the Home tab.
@@ -402,10 +402,10 @@ pub struct PdfCraftApp {
     pub palette_query: String,
     pub all_tools_expanded: bool,
     pub recent: Vec<RecentFile>,
-    /// Preferences: reopen the files that were open when PdfCraft last closed (#442).
+    /// Preferences: reopen the files that were open when InsurCraft last closed (#442).
     pub reopen_last_session: bool,
-    /// The files open when PdfCraft last closed, read from the settings for
-    /// [`PdfCraftApp::reopen_last_files`].
+    /// The files open when InsurCraft last closed, read from the settings for
+    /// [`InsurCraftApp::reopen_last_files`].
     pub last_session: last_session::LastSession,
     /// Quitting closes unsaved tabs one by one: what was open when the quit began.
     quit_session: Option<last_session::LastSession>,
@@ -433,7 +433,7 @@ pub struct PdfCraftApp {
     /// Document Properties ▸ Description fields being edited: (document, Title/Author/Subject/Keywords).
     pub props_draft: Option<(DocId, [String; 4])>,
     /// Document Properties ▸ Initial View (and reading options) being edited.
-    pub view_draft: Option<(DocId, pdfcraft_engine::InitialView)>,
+    pub view_draft: Option<(DocId, insurcraft_engine::InitialView)>,
     /// Files picked asynchronously for combine / insert (web).
     pub requests: files::Requests,
     /// Native file pickers in flight (they never block the frame; see `pickers`).
@@ -449,7 +449,7 @@ pub struct PdfCraftApp {
     pub extract_draft: ExtractDraft,
     pub rotate_draft: RotateDraft,
     /// Summarize Comments: sort order.
-    pub summary_sort: pdfcraft_engine::SummarySort,
+    pub summary_sort: insurcraft_engine::SummarySort,
     /// The signing dialogs' state.
     pub sign_draft: Option<SignDraft>,
     /// Digital ID files the user has created or added.
@@ -466,7 +466,7 @@ pub struct PdfCraftApp {
     pub run_inline: bool,
     /// Action Wizard: the user's actions, the dialog state, the running action and (tests) the
     /// files to use instead of a picker.
-    pub custom_actions: Vec<pdfcraft_engine::actions::Action>,
+    pub custom_actions: Vec<insurcraft_engine::actions::Action>,
     pub wizard: actions_ui::Wizard,
     pub action_run: Option<std::sync::Arc<std::sync::Mutex<actions_ui::RunProgress>>>,
     pub action_files_override: Option<Vec<String>>,
@@ -479,13 +479,13 @@ pub struct PdfCraftApp {
     pub js_console: js_ui::JsConsole,
     pub doc_js: js_ui::DocJsDraft,
     pub a11y: a11y_ui::A11yState,
-    pub a11y_skipped: std::collections::BTreeSet<pdfcraft_engine::a11y::Rule>,
+    pub a11y_skipped: std::collections::BTreeSet<insurcraft_engine::a11y::Rule>,
     pub alt_draft: a11y_ui::AltDraft,
     /// List the OS key store's signing identities among the digital IDs (the desktop app).
     pub os_key_store_ids: bool,
     pub cert_viewer: Option<sign_ui::CertViewer>,
     /// The last space audit.
-    pub space_audit: Vec<pdfcraft_engine::optimize::SpaceUse>,
+    pub space_audit: Vec<insurcraft_engine::optimize::SpaceUse>,
     /// Combine files: the files staged so far.
     pub combine_draft: Vec<combine_ui::CombineFile>,
     /// The Combine files tab: whether it is open, shown, its selection and undo history.
@@ -509,7 +509,7 @@ pub struct PdfCraftApp {
     grid_drop: Option<GridDrop>,
     /// The last snapshot (width, height, RGBA); `system_clipboard` also puts it on the
     /// system clipboard (tests turn that off).
-    pub last_snapshot: Option<(u32, u32, pdfcraft_render::Pixels)>,
+    pub last_snapshot: Option<(u32, u32, insurcraft_render::Pixels)>,
     pub system_clipboard: bool,
     /// Attach file: the file to attach instead of asking (tests, automation).
     pub attach_override: Option<(String, Vec<u8>)>,
@@ -576,7 +576,7 @@ pub struct PdfCraftApp {
     pub print_draft: PrintDraft,
     pub link_draft: Option<LinkDraft>,
     /// The style new text gets (Edit a PDF ▸ Format text).
-    pub text_style: pdfcraft_engine::AddedText,
+    pub text_style: insurcraft_engine::AddedText,
     /// The Replace Pages dialog's state.
     pub replace_draft: Option<files::ReplaceDraft>,
     /// The last web link the app asked the system to open (tests and automation).
@@ -618,12 +618,12 @@ pub struct PendingLink {
 pub struct NumberDraft {
     pub from: usize,
     pub to: usize,
-    pub style: pdfcraft_engine::LabelStyle,
+    pub style: insurcraft_engine::LabelStyle,
     pub prefix: String,
     pub start: u32,
 }
 
-impl Default for PdfCraftApp {
+impl Default for InsurCraftApp {
     fn default() -> Self {
         Self::new()
     }
@@ -648,7 +648,7 @@ fn rgb_triple(v: &serde_json::Value) -> Option<[f64; 3]> {
     Some(out)
 }
 
-impl PdfCraftApp {
+impl InsurCraftApp {
     pub fn new() -> Self {
         Self {
             session: Session::new(),
@@ -784,7 +784,7 @@ impl PdfCraftApp {
             link_draft: None,
             text_style: content_ui::default_style(),
             replace_draft: None,
-            number_draft: NumberDraft { from: 1, to: 1, style: pdfcraft_engine::LabelStyle::Decimal, prefix: String::new(), start: 1 },
+            number_draft: NumberDraft { from: 1, to: 1, style: insurcraft_engine::LabelStyle::Decimal, prefix: String::new(), start: 1 },
         }
     }
 
@@ -796,8 +796,8 @@ impl PdfCraftApp {
 
     /// Open a document the way it asks to be opened: navigation panel, layout, magnification,
     /// page (Document Properties ▸ Initial View).
-    fn apply_initial_view(&mut self, index: usize, v: &pdfcraft_engine::InitialView) {
-        use pdfcraft_engine::{InitialLayout as L, Magnification as M, Navigation as N};
+    fn apply_initial_view(&mut self, index: usize, v: &insurcraft_engine::InitialView) {
+        use insurcraft_engine::{InitialLayout as L, Magnification as M, Navigation as N};
         let pages = self.session.get(self.views[index].id).map_or(0, |d| d.info.pages.len());
         if self.active == Some(index) {
             match v.navigation {
@@ -860,7 +860,7 @@ impl PdfCraftApp {
         password: Option<&str>,
         activate: bool,
     ) -> Result<(), String> {
-        use pdfcraft_render::OpenError;
+        use insurcraft_render::OpenError;
         let size = bytes.len();
         let id = match self.session.open(name, path.clone(), bytes.clone(), password) {
             Ok(id) => id,
@@ -935,7 +935,7 @@ impl PdfCraftApp {
     }
 
     /// The document whose page grid is showing and may take pages, if any.
-    fn grid_target(&self) -> Option<pdfcraft_engine::DocId> {
+    fn grid_target(&self) -> Option<insurcraft_engine::DocId> {
         let view = self.active.and_then(|i| self.views.get(i)).filter(|v| v.organize)?;
         (self.dialog.is_none() && self.session.get(view.id)?.allows_assembly()).then_some(view.id)
     }
@@ -946,7 +946,7 @@ impl PdfCraftApp {
     fn drop_on_grid(&mut self, dropped: Vec<egui::DroppedFileHandle>, ctx: &egui::Context) -> Vec<egui::DroppedFileHandle> {
         let Some(id) = self.grid_target().filter(|_| !dropped.is_empty()) else { return dropped };
         let mut files = Vec::new();
-        for f in dropped.iter().take(pdfcraft_engine::MAX_CREATE_FILES) {
+        for f in dropped.iter().take(insurcraft_engine::MAX_CREATE_FILES) {
             let name = f.path().file_name().map(|n| n.to_string_lossy().into_owned()).unwrap_or_else(|| "dropped.pdf".into());
             let bytes = if f.path().is_absolute() { std::fs::read(f.path()).map_err(|e| e.to_string()) } else { f.bytes() };
             match bytes {
@@ -1016,7 +1016,7 @@ impl PdfCraftApp {
     pub fn attachment_action(&mut self, doc: DocId, index: usize, open: bool) {
         let Some(d) = self.session.get(doc) else { return };
         let Some(att) = d.info.attachments.get(index).cloned() else { return };
-        let data = pdfcraft_render::attachment_data(&d.bytes, d.password.as_deref(), &att);
+        let data = insurcraft_render::attachment_data(&d.bytes, d.password.as_deref(), &att);
         match (data, open) {
             (Err(e), _) => self.notify_fmt("Couldn't read {name}: {e}", &[("name", &att.name), ("e", &e.to_string())]),
             (Ok(bytes), true) => {
@@ -1145,7 +1145,7 @@ impl PdfCraftApp {
         client
     }
 
-    /// Open a web link in the system browser (a new tab on the web). Only for PdfCraft's own
+    /// Open a web link in the system browser (a new tab on the web). Only for InsurCraft's own
     /// links; an address that came from a document goes through [`Self::request_document_url`].
     pub fn open_url(&mut self, url: &str) {
         if let Some(ctx) = &self.ctx {
@@ -1159,18 +1159,18 @@ impl PdfCraftApp {
     /// (#90, #91). While one request is waiting, further ones are dropped, so a script can't
     /// queue up a stream of dialogs.
     pub fn request_document_url(&mut self, url: &str, origin: LinkOrigin) {
-        match pdfcraft_engine::links::document_url(url) {
+        match insurcraft_engine::links::document_url(url) {
             Ok(url) => {
                 if self.pending_link.is_none() {
                     self.pending_link = Some(PendingLink { url, origin });
                 }
             }
             Err(e) => {
-                use pdfcraft_engine::links::BlockedLink;
+                use insurcraft_engine::links::BlockedLink;
                 let template = if matches!(e, BlockedLink::MailFile | BlockedLink::MailEncodedWord) {
-                    "{who} in this document tried to open an address PdfCraft won't open: {e}."
+                    "{who} in this document tried to open an address InsurCraft won't open: {e}."
                 } else {
-                    "{who} in this document tried to open an address PdfCraft won't open: {e}. Only web (http, https) and email (mailto) links open from documents."
+                    "{who} in this document tried to open an address InsurCraft won't open: {e}. Only web (http, https) and email (mailto) links open from documents."
                 };
                 self.notify_fmt(template, &[("who", tl!(origin.noun())), ("e", &e.to_string())]);
             }
@@ -1231,19 +1231,19 @@ impl PdfCraftApp {
 
     /// Run a catalogue command. Commands that aren't implemented yet say which milestone ships them.
     pub fn run_command(&mut self, command: &str) {
-        if pdfcraft_engine::commands::command(command).is_some() {
+        if insurcraft_engine::commands::command(command).is_some() {
             self.execute(command);
             return;
         }
         // Not implemented yet: say which milestone ships it.
-        let when = pdfcraft_engine::catalog::TOOL_GROUPS
+        let when = insurcraft_engine::catalog::TOOL_GROUPS
             .iter()
             .flat_map(|g| g.sections.iter().flat_map(|s| s.items.iter()))
             .find(|i| i.command == command)
             .map(|i| match i.availability {
-                pdfcraft_engine::catalog::Availability::Planned(m) => crate::i18n::fmt(tl!("ships in milestone {m}"), &[("m", m)]),
-                pdfcraft_engine::catalog::Availability::Provider => tl!("needs an AI provider (off by default)").to_string(),
-                pdfcraft_engine::catalog::Availability::Ready => tl!("is available").to_string(),
+                insurcraft_engine::catalog::Availability::Planned(m) => crate::i18n::fmt(tl!("ships in milestone {m}"), &[("m", m)]),
+                insurcraft_engine::catalog::Availability::Provider => tl!("needs an AI provider (off by default)").to_string(),
+                insurcraft_engine::catalog::Availability::Ready => tl!("is available").to_string(),
             })
             .unwrap_or_else(|| tl!("is not available yet").to_string());
         self.notify_fmt("`{command}` {when}", &[("command", command), ("when", &when)]);
@@ -1280,7 +1280,7 @@ impl PdfCraftApp {
 
     /// Serialize the user's persistent state (recent files, theme). Local only.
     pub fn persist(&self) -> String {
-        let trusted: Vec<String> = self.session.trusted_certificates().iter().map(pdfcraft_engine::sign::x509::to_pem).collect();
+        let trusted: Vec<String> = self.session.trusted_certificates().iter().map(insurcraft_engine::sign::x509::to_pem).collect();
         serde_json::json!({
             "recent": self.recent,
             "reopen_last_session": self.reopen_last_session,
@@ -1430,7 +1430,7 @@ impl PdfCraftApp {
             self.session.set_javascript(on);
         }
         if let Ok(pems) = serde_json::from_value::<Vec<String>>(v["trusted"].clone()) {
-            let certs = pems.iter().filter_map(|p| pdfcraft_engine::sign::x509::load_certificates(p.as_bytes()).ok()).flatten().collect();
+            let certs = pems.iter().filter_map(|p| insurcraft_engine::sign::x509::load_certificates(p.as_bytes()).ok()).flatten().collect();
             self.session.set_trusted_certificates(certs);
         }
     }
@@ -1489,7 +1489,7 @@ impl PdfCraftApp {
             ("date-format", _) => self.session.set_date_format(value)?,
             ("date-language", _) => self.session.set_date_language(Some(value).filter(|v| *v != "auto"))?,
             ("tool", _) => {
-                let g = pdfcraft_engine::catalog::group(value).ok_or_else(|| format!("unknown tool {value}"))?;
+                let g = insurcraft_engine::catalog::group(value).ok_or_else(|| format!("unknown tool {value}"))?;
                 self.left = LeftPanel::Tool(g.id);
                 self.left_open = true;
             }
@@ -1505,9 +1505,9 @@ impl PdfCraftApp {
                     "split" => Some(Dialog::Split),
                     "protect" => Some(Dialog::Protect),
                     "page-boxes" => Some(Dialog::PageBoxes),
-                    "header-footer" => Some(Dialog::Marks(pdfcraft_engine::MarkKind::HeaderFooter)),
-                    "watermark" => Some(Dialog::Marks(pdfcraft_engine::MarkKind::Watermark)),
-                    "background" => Some(Dialog::Marks(pdfcraft_engine::MarkKind::Background)),
+                    "header-footer" => Some(Dialog::Marks(insurcraft_engine::MarkKind::HeaderFooter)),
+                    "watermark" => Some(Dialog::Marks(insurcraft_engine::MarkKind::Watermark)),
+                    "background" => Some(Dialog::Marks(insurcraft_engine::MarkKind::Background)),
                     "export-image" => Some(Dialog::Export(export_ui::ExportKind::Image)),
                     "export-text" => Some(Dialog::Export(export_ui::ExportKind::Text)),
                     "export-all-images" => Some(Dialog::Export(export_ui::ExportKind::AllImages)),
@@ -1630,7 +1630,7 @@ impl PdfCraftApp {
                         QuickTool::CustomStamp(i)
                     }
                     stamp if stamp.starts_with("stamp-") => QuickTool::Stamp(
-                        pdfcraft_engine::StampKind::ALL
+                        insurcraft_engine::StampKind::ALL
                             .into_iter()
                             .find(|k| k.name().trim_start_matches("PC").eq_ignore_ascii_case(&stamp[6..]))
                             .ok_or_else(|| format!("unknown stamp {stamp}"))?,
@@ -1717,7 +1717,7 @@ impl PdfCraftApp {
     }
 }
 
-impl PdfCraftApp {
+impl InsurCraftApp {
     /// The quick tools' keys, as in Acrobat: V selects, H pans, and holding Space pans until it
     /// is released. Plain letters, so not while a text field, a form field, a dialog or the
     /// palette has the keyboard.
@@ -1751,7 +1751,7 @@ impl PdfCraftApp {
     }
 }
 
-impl eframe::App for PdfCraftApp {
+impl eframe::App for InsurCraftApp {
     /// While files are dragged over the window the system sends no pointer moves, so egui
     /// would keep the place the pointer entered at: tell it where the pointer really is, so the
     /// page grid can show (and use) the gap under it.
@@ -1766,7 +1766,7 @@ impl eframe::App for PdfCraftApp {
     }
 
     fn save(&mut self, storage: &mut dyn eframe::Storage) {
-        storage.set_string("pdfcraft", self.persist());
+        storage.set_string("insurcraft", self.persist());
     }
 
     fn logic(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
@@ -1910,7 +1910,7 @@ impl eframe::App for PdfCraftApp {
             .and_then(|i| self.session.get(self.views[i].id))
             .map(|d| d.display_name())
             .or_else(|| self.combine_showing().then(|| tl!("Combine files").to_owned()))
-            .map_or_else(|| "PdfCraft".to_owned(), |name| format!("{name} — PdfCraft"));
+            .map_or_else(|| "InsurCraft".to_owned(), |name| format!("{name} — InsurCraft"));
         if title != self.window_title {
             ctx.send_viewport_cmd(egui::ViewportCommand::Title(title.clone()));
             self.window_title = title;
@@ -1959,7 +1959,7 @@ impl eframe::App for PdfCraftApp {
     }
 }
 
-impl PdfCraftApp {
+impl InsurCraftApp {
     fn finish_render_frame(&mut self, ctx: &egui::Context) {
         // Retire hidden documents before admitting the visible document's textures, so the
         // three cache limits apply to the application, regardless of how many tabs are open.

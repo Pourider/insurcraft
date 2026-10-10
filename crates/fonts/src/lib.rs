@@ -1,4 +1,4 @@
-//! pdfcraft-fonts — font metrics and encodings for generated appearances (L2).
+//! insurcraft-fonts — font metrics and encodings for generated appearances (L2).
 //!
 //! See the README: the metrics are approximations by character class (no vendor metrics files
 //! are bundled). The full font subsystem lands in M2.2/M7.

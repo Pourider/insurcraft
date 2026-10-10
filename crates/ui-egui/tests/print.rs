@@ -2,11 +2,11 @@
 
 use egui_kittest::Harness;
 use egui_kittest::kittest::Queryable;
-use pdfcraft_ui_egui::{Dialog, PdfCraftApp};
+use insurcraft_ui_egui::{Dialog, InsurCraftApp};
 
-fn harness() -> Harness<'static, PdfCraftApp> {
+fn harness() -> Harness<'static, InsurCraftApp> {
     let mut h = Harness::builder().with_size(egui::vec2(1400.0, 900.0)).build_eframe(|_cc| {
-        let mut app = PdfCraftApp::new();
+        let mut app = InsurCraftApp::new();
         app.set_option("language", "en").unwrap();
         app.open_bytes("form.pdf", None, include_bytes!("data/form.pdf").to_vec()).unwrap();
         app
@@ -28,7 +28,7 @@ fn print_dialog_lays_out_sheets_and_saves_a_pdf() {
     h.run_steps(2);
     h.get_by_label("Sheet 1 of 1");
     // No printer on a test machine: Save as PDF.
-    let out = std::env::temp_dir().join(format!("pdfcraft-print-test-{}.pdf", std::process::id()));
+    let out = std::env::temp_dir().join(format!("insurcraft-print-test-{}.pdf", std::process::id()));
     h.state_mut().save_override = Some(out.to_string_lossy().into_owned());
     h.state_mut().print_draft.printer = None;
     h.run_steps(1);
@@ -36,15 +36,15 @@ fn print_dialog_lays_out_sheets_and_saves_a_pdf() {
     h.run_steps(3);
     assert_eq!(h.state().dialog, None);
     let bytes = std::fs::read(&out).expect("saved");
-    let doc = pdfcraft_cos::Document::open(std::sync::Arc::new(bytes)).unwrap();
-    assert_eq!(pdfcraft_model::pages(&doc).len(), 1);
+    let doc = insurcraft_cos::Document::open(std::sync::Arc::new(bytes)).unwrap();
+    assert_eq!(insurcraft_model::pages(&doc).len(), 1);
     let _ = std::fs::remove_file(out);
 }
 
 /// Pages picked beforehand are what the dialog offers to print (Acrobat's "Selected pages").
 #[test]
 fn print_dialog_prints_the_selected_pages() {
-    use pdfcraft_ui_egui::PrintWhich;
+    use insurcraft_ui_egui::PrintWhich;
     let mut h = harness();
     let bytes = h.state().session.create_blank(200.0, 300.0, 5).unwrap();
     h.state_mut().open_bytes("five.pdf", None, bytes.as_ref().clone()).unwrap();
@@ -65,7 +65,7 @@ fn print_dialog_prints_the_selected_pages() {
     assert_eq!(h.state().print_draft.which, PrintWhich::Selected);
     h.get_by_label("Selected pages (2)");
     h.get_by_label("Sheet 1 of 2");
-    let out = std::env::temp_dir().join(format!("pdfcraft-print-selected-{}.pdf", std::process::id()));
+    let out = std::env::temp_dir().join(format!("insurcraft-print-selected-{}.pdf", std::process::id()));
     h.state_mut().save_override = Some(out.to_string_lossy().into_owned());
     h.state_mut().print_draft.printer = None;
     h.run_steps(1);
@@ -73,8 +73,8 @@ fn print_dialog_prints_the_selected_pages() {
     h.run_steps(3);
     assert_eq!(h.state().dialog, None);
     let saved = std::fs::read(&out).expect("saved");
-    let doc = pdfcraft_cos::Document::open(std::sync::Arc::new(saved)).unwrap();
-    assert_eq!(pdfcraft_model::pages(&doc).len(), 2);
+    let doc = insurcraft_cos::Document::open(std::sync::Arc::new(saved)).unwrap();
+    assert_eq!(insurcraft_model::pages(&doc).len(), 2);
     let _ = std::fs::remove_file(out);
     // The selection gone, the remembered choice falls back to the whole document.
     h.state_mut().views[tab].select_pages(&[]);
@@ -89,7 +89,7 @@ fn invalid_ranges_are_explained_in_the_preview() {
     let mut h = harness();
     h.state_mut().execute("print.dialog");
     h.run_steps(2);
-    h.state_mut().print_draft.which = pdfcraft_ui_egui::PrintWhich::Range;
+    h.state_mut().print_draft.which = insurcraft_ui_egui::PrintWhich::Range;
     h.state_mut().print_draft.range = "7".into();
     h.run_steps(2);
     h.get_by_label_contains("out of range");
@@ -97,7 +97,7 @@ fn invalid_ranges_are_explained_in_the_preview() {
 
 #[test]
 fn cut_stack_dialog_previews_saves_and_refuses_duplex() {
-    use pdfcraft_engine::print::{PageOrder, spool::Duplex};
+    use insurcraft_engine::print::{PageOrder, spool::Duplex};
     let mut h = harness();
     // Ten source pages, generated using the headless engine.
     let bytes = h.state().session.create_blank(200.0, 300.0, 10).unwrap();
@@ -125,14 +125,14 @@ fn cut_stack_dialog_previews_saves_and_refuses_duplex() {
     assert!(!h.state_mut().print_now());
     h.state_mut().print_draft.duplex = Duplex::Off;
     h.state_mut().print_draft.printer = None;
-    let out = std::env::temp_dir().join(format!("pdfcraft-cut-stack-ui-{}.pdf", std::process::id()));
+    let out = std::env::temp_dir().join(format!("insurcraft-cut-stack-ui-{}.pdf", std::process::id()));
     h.state_mut().save_override = Some(out.to_string_lossy().into_owned());
     h.run_steps(2);
     h.get_by_label("Save as PDF").click();
     h.run_steps(3);
     assert_eq!(h.state().dialog, None);
-    let printed = pdfcraft_cos::Document::open(std::sync::Arc::new(std::fs::read(&out).unwrap())).unwrap();
-    assert_eq!(pdfcraft_model::pages(&printed).len(), 3);
+    let printed = insurcraft_cos::Document::open(std::sync::Arc::new(std::fs::read(&out).unwrap())).unwrap();
+    assert_eq!(insurcraft_model::pages(&printed).len(), 3);
     let _ = std::fs::remove_file(out);
 }
 
@@ -143,7 +143,7 @@ fn a_failed_save_as_pdf_keeps_the_dialog_open() {
     h.run_steps(3);
     h.state_mut().print_draft.printer = None;
     // A folder that doesn't exist: the write fails.
-    let out = std::env::temp_dir().join(format!("pdfcraft-missing-{}", std::process::id())).join("x.pdf");
+    let out = std::env::temp_dir().join(format!("insurcraft-missing-{}", std::process::id())).join("x.pdf");
     h.state_mut().save_override = Some(out.to_string_lossy().into_owned());
     h.run_steps(2);
     h.get_by_label("Save as PDF").click();
@@ -156,7 +156,7 @@ fn a_failed_save_as_pdf_keeps_the_dialog_open() {
 /// Properties… shows the printer driver's own options (CUPS) and sends only those changed.
 #[test]
 fn print_dialog_shows_the_printer_driver_options() {
-    use pdfcraft_engine::print::spool;
+    use insurcraft_engine::print::spool;
     let mut h = harness();
     assert!(h.state_mut().execute("print.dialog"));
     h.run_steps(3);

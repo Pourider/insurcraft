@@ -1,4 +1,4 @@
-//! pdfcraft-preflight — Standards: PDF/A (L4).
+//! insurcraft-preflight — Standards: PDF/A (L4).
 //!
 //! [`verify`] checks a document against the parts of ISO 19005-2/-3 (PDF/A-2b, PDF/A-3b) that can
 //! be decided from the object graph:
@@ -24,7 +24,7 @@
 pub mod icc;
 mod xmp;
 
-use pdfcraft_cos::{Dict, Document, ObjRef, Object, PdfString, Stream};
+use insurcraft_cos::{Dict, Document, ObjRef, Object, PdfString, Stream};
 
 /// The PDF/A part and conformance level.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -288,7 +288,7 @@ pub fn verify(doc: &Document, level: Level) -> Vec<Issue> {
         issue("6.4.1", "The form asks viewers to make appearances (NeedAppearances)".into(), None, true);
     }
     // Pages: annotations and page actions.
-    let pages = pdfcraft_model::pages(doc);
+    let pages = insurcraft_model::pages(doc);
     let page_of = |r: ObjRef| {
         pages.iter().position(|p| {
             p.dict
@@ -460,13 +460,13 @@ fn strip_actions(doc: &Document, d: &mut Dict) -> bool {
 }
 
 /// Make `doc` conform to `level` as far as possible, then re-check it.
-pub fn convert(doc: &mut Document, level: Level) -> Result<Report, pdfcraft_cos::CosError> {
+pub fn convert(doc: &mut Document, level: Level) -> Result<Report, insurcraft_cos::CosError> {
     let mut fixed = Vec::new();
     if doc.trailer().get(b"Encrypt").is_some() {
         doc.remove_encryption();
         fixed.push("Removed encryption".into());
     }
-    let root = doc.root().ok_or(pdfcraft_cos::CosError::Syntax { offset: 0, detail: "no catalog".into() })?;
+    let root = doc.root().ok_or(insurcraft_cos::CosError::Syntax { offset: 0, detail: "no catalog".into() })?;
     // Catalog: actions, JavaScript, NeedAppearances, output intent, metadata.
     let mut cat = catalog(doc);
     if cat.remove(b"AA").is_some() {
@@ -526,7 +526,7 @@ pub fn convert(doc: &mut Document, level: Level) -> Result<Report, pdfcraft_cos:
 
     // Pages, annotations, fields, images, embedded files.
     let (mut actions, mut flags, mut images, mut removed, mut files) = (0, 0, 0, 0, 0);
-    for p in pdfcraft_model::pages(doc) {
+    for p in insurcraft_model::pages(doc) {
         let mut changed = false;
         doc.update_dict(p.obj, |d| changed = d.remove(b"AA").is_some())?;
         actions += changed as usize;
@@ -538,7 +538,7 @@ pub fn convert(doc: &mut Document, level: Level) -> Result<Report, pdfcraft_cos:
         let is_annot = ty.as_deref() == Some(b"Annot");
         if is_annot && sub.as_deref().is_some_and(|s| FORBIDDEN_ANNOTS.contains(&s)) {
             // Take it off its page.
-            for p in pdfcraft_model::pages(doc) {
+            for p in insurcraft_model::pages(doc) {
                 let annots = p.dict.get(b"Annots").map(|a| doc.resolve(a)).and_then(|a| a.as_array().cloned()).unwrap_or_default();
                 if annots.iter().any(|a| a.as_ref() == Some(r)) {
                     let kept: Vec<Object> = annots.into_iter().filter(|a| a.as_ref() != Some(r)).collect();

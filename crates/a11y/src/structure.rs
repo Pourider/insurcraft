@@ -3,8 +3,8 @@
 
 use std::collections::{HashMap, HashSet};
 
-use pdfcraft_cos::{Dict, Document, ObjRef, Object};
-use pdfcraft_model::Page;
+use insurcraft_cos::{Dict, Document, ObjRef, Object};
+use insurcraft_model::Page;
 
 use crate::{Finding, Rule};
 

@@ -2,11 +2,11 @@
 //! the JavaScript console (⌘J), Document JavaScripts, and Preferences ▸ JavaScript.
 
 use egui::{Align, Layout};
-use pdfcraft_engine::js::{JsOutput, Request};
-use pdfcraft_engine::{DocId, Edit};
+use insurcraft_engine::js::{JsOutput, Request};
+use insurcraft_engine::{DocId, Edit};
 
 use crate::theme::{self, Tokens};
-use crate::{PdfCraftApp, widgets};
+use crate::{InsurCraftApp, widgets};
 
 /// The JavaScript console: the input and the output so far.
 #[derive(Clone, Debug, Default, PartialEq)]
@@ -22,7 +22,7 @@ pub struct DocJsDraft {
     pub script: String,
 }
 
-impl PdfCraftApp {
+impl InsurCraftApp {
     /// Act on what scripts produced in document `id`: alerts are shown, console output goes to
     /// the console, print and page requests are carried out, links wait for the user's permission
     /// (form submissions are reported, never sent).
@@ -45,7 +45,7 @@ impl PdfCraftApp {
                 }
                 Request::LaunchUrl(u) => self.request_document_url(&u, crate::LinkOrigin::Script),
                 Request::Submit(u) => self.notify_fmt(
-                    "The form asks to be submitted to {u}; PdfCraft doesn't send form data. Save the document to keep your entries.",
+                    "The form asks to be submitted to {u}; InsurCraft doesn't send form data. Save the document to keep your entries.",
                     &[("u", &u)],
                 ),
                 Request::SaveAs => self.run_command("file.save_as"),
@@ -142,7 +142,7 @@ fn buttons(ui: &mut egui::Ui, primary: &str, others: &[&str]) -> Option<String> 
 }
 
 /// The JavaScript console. Returns `true` to close.
-pub(crate) fn console_body(ui: &mut egui::Ui, app: &mut PdfCraftApp, t: &Tokens) -> bool {
+pub(crate) fn console_body(ui: &mut egui::Ui, app: &mut InsurCraftApp, t: &Tokens) -> bool {
     ui.label(egui::RichText::new(tl!("JavaScript Console")).font(theme::semibold(18.0)));
     ui.add_space(6.0);
     if !app.session.javascript() {
@@ -183,7 +183,7 @@ pub(crate) fn console_body(ui: &mut egui::Ui, app: &mut PdfCraftApp, t: &Tokens)
 }
 
 /// Document JavaScripts: list, edit, add and delete. Returns `true` to close.
-pub(crate) fn document_js_body(ui: &mut egui::Ui, app: &mut PdfCraftApp, t: &Tokens) -> bool {
+pub(crate) fn document_js_body(ui: &mut egui::Ui, app: &mut InsurCraftApp, t: &Tokens) -> bool {
     ui.label(egui::RichText::new(tl!("Document JavaScripts")).font(theme::semibold(18.0)));
     ui.add_space(6.0);
     let scripts = app.active_ids().and_then(|(_, id)| app.session.get(id)).map(|d| d.document_scripts()).unwrap_or_default();
@@ -231,7 +231,7 @@ pub(crate) fn document_js_body(ui: &mut egui::Ui, app: &mut PdfCraftApp, t: &Tok
 }
 
 /// Preferences: interface language, identity and JavaScript. Returns `true` to close.
-pub(crate) fn preferences_body(ui: &mut egui::Ui, app: &mut PdfCraftApp, t: &Tokens) -> bool {
+pub(crate) fn preferences_body(ui: &mut egui::Ui, app: &mut InsurCraftApp, t: &Tokens) -> bool {
     ui.label(egui::RichText::new(tl!("Preferences")).font(theme::semibold(18.0)));
     ui.horizontal(|ui| {
         ui.label(tl!("Interface language"));
@@ -297,7 +297,7 @@ pub(crate) fn preferences_body(ui: &mut egui::Ui, app: &mut PdfCraftApp, t: &Tok
     );
     // The web build has no file paths to reopen.
     #[cfg(not(target_arch = "wasm32"))]
-    ui.checkbox(&mut app.reopen_last_session, tl!("Reopen the files that were open when PdfCraft last closed"));
+    ui.checkbox(&mut app.reopen_last_session, tl!("Reopen the files that were open when InsurCraft last closed"));
     ui.add_space(8.0);
     // Identity: the author of new comments (Acrobat: Preferences ▸ Identity).
     ui.label(egui::RichText::new(tl!("Identity")).font(theme::semibold(13.0)));
@@ -335,10 +335,10 @@ pub(crate) fn preferences_body(ui: &mut egui::Ui, app: &mut PdfCraftApp, t: &Tok
 /// Preferences ▸ Date format: a preset, or any pattern typed in, for Fill & Sign dates, and the
 /// language of its month and weekday names. A valid pattern applies as it's typed; an invalid
 /// one stays in the box with the reason, and the last valid one stays in use.
-fn date_format(ui: &mut egui::Ui, app: &mut PdfCraftApp, t: &Tokens) {
-    use pdfcraft_engine::dates::{DATE_FORMATS, DATE_LANGUAGES, MAX_DATE_FORMAT_CHARS};
+fn date_format(ui: &mut egui::Ui, app: &mut InsurCraftApp, t: &Tokens) {
+    use insurcraft_engine::dates::{DATE_FORMATS, DATE_LANGUAGES, MAX_DATE_FORMAT_CHARS};
     ui.label(egui::RichText::new(tl!("Date format")).font(theme::semibold(13.0)));
-    let sample = |app: &PdfCraftApp, f: &str| format!("{}   {f}", app.date_text(Some(f)).unwrap_or_default());
+    let sample = |app: &InsurCraftApp, f: &str| format!("{}   {f}", app.date_text(Some(f)).unwrap_or_default());
     ui.horizontal(|ui| {
         let label = ui.label(tl!("Fill & Sign dates"));
         let current = app.session.date_format().to_string();
@@ -367,7 +367,7 @@ fn date_format(ui: &mut egui::Ui, app: &mut PdfCraftApp, t: &Tokens) {
             let _ = app.session.set_date_format(&text);
             app.date_format_draft = Some(text.clone());
         }
-        if !edit.has_focus() && pdfcraft_engine::dates::check_date_format(&text).is_ok() {
+        if !edit.has_focus() && insurcraft_engine::dates::check_date_format(&text).is_ok() {
             app.date_format_draft = None;
         }
         match app.date_text(Some(&text)) {
@@ -377,7 +377,7 @@ fn date_format(ui: &mut egui::Ui, app: &mut PdfCraftApp, t: &Tokens) {
         };
     });
     // Fill & Sign refuses a date it would save as "?"; say so before anyone tries.
-    let bad = app.date_text(None).map(|today| pdfcraft_engine::dates::unwritable(&today)).unwrap_or_default();
+    let bad = app.date_text(None).map(|today| insurcraft_engine::dates::unwritable(&today)).unwrap_or_default();
     if !bad.is_empty() {
         ui.label(
             egui::RichText::new(crate::i18n::fmt(

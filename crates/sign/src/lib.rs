@@ -46,5 +46,5 @@ pub enum SignError {
     #[error("{0}")]
     Pdf(String),
     #[error(transparent)]
-    Cos(#[from] pdfcraft_cos::CosError),
+    Cos(#[from] insurcraft_cos::CosError),
 }

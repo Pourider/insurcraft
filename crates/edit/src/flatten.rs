@@ -10,7 +10,7 @@
 
 use std::collections::HashSet;
 
-use pdfcraft_cos::{Dict, Document, ObjRef, Object};
+use insurcraft_cos::{Dict, Document, ObjRef, Object};
 
 use crate::{EditError, check, n, page_list, place_tagged};
 
@@ -66,7 +66,7 @@ fn selected(doc: &Document, d: &Dict, which: Which) -> bool {
             let widget = subtype == b"Widget";
             !matches!(subtype, b"Link" | b"Popup") && (!widget || fields) && (widget || comments)
         }
-        Which::FillSign => !matches!(subtype, b"Link" | b"Popup" | b"Widget") && pdfcraft_annot::is_fill_sign(doc, d),
+        Which::FillSign => !matches!(subtype, b"Link" | b"Popup" | b"Widget") && insurcraft_annot::is_fill_sign(doc, d),
     }
 }
 

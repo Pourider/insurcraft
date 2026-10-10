@@ -7,7 +7,7 @@
 
 use std::collections::HashMap;
 
-use pdfcraft_cos::{Dict, Document, Object};
+use insurcraft_cos::{Dict, Document, Object};
 
 /// How the bytes of a string map to codes.
 #[derive(Clone, Debug, PartialEq)]
@@ -649,7 +649,7 @@ fn unicode_map(doc: &Document, font: &Dict, composite: bool) -> HashMap<u32, Str
 
 #[cfg(test)]
 mod tests {
-    use pdfcraft_cos::{Dict, Document, Object, Stream};
+    use insurcraft_cos::{Dict, Document, Object, Stream};
 
     use super::*;
 

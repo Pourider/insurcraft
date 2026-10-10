@@ -35,7 +35,7 @@ pub struct Job {
 
 impl Default for Job {
     fn default() -> Self {
-        Job { printer: None, copies: 1, collate: true, duplex: Duplex::Off, grayscale: false, title: "PdfCraft".into(), options: Vec::new() }
+        Job { printer: None, copies: 1, collate: true, duplex: Duplex::Off, grayscale: false, title: "InsurCraft".into(), options: Vec::new() }
     }
 }
 
@@ -103,7 +103,7 @@ pub struct PrinterOption {
     pub default: String,
 }
 
-/// Options PdfCraft's Print dialog sets itself (paper, two-sided, collation), so the driver's
+/// Options InsurCraft's Print dialog sets itself (paper, two-sided, collation), so the driver's
 /// copies of them are neither shown nor sent.
 pub const HANDLED_OPTIONS: &[&str] = &["PageSize", "PageRegion", "Duplex", "Collate", "ImageableArea", "PaperDimension"];
 
@@ -126,7 +126,7 @@ fn name_label(s: &str) -> (&str, &str) {
 }
 
 /// The job options a PPD offers, in file order, without the installable-hardware group and the
-/// options PdfCraft sets itself ([`HANDLED_OPTIONS`]). Lenient: malformed lines are skipped.
+/// options InsurCraft sets itself ([`HANDLED_OPTIONS`]). Lenient: malformed lines are skipped.
 pub fn parse_ppd(ppd: &str) -> Vec<PrinterOption> {
     let mut out: Vec<PrinterOption> = Vec::new();
     let (mut group, mut group_key) = (String::new(), String::new());
@@ -277,7 +277,7 @@ pub fn open_printer_preferences(printer: &str) -> Result<(), PrintError> {
 /// interface language (`AppleLanguages`) unless `SOFTWARE` is set, in which case it uses `LANG`.
 fn lpstat_with(args: &[&str]) -> std::process::Command {
     let mut c = std::process::Command::new("lpstat");
-    c.args(args).env("LC_ALL", "C").env("LANG", "C").env("SOFTWARE", "PdfCraft");
+    c.args(args).env("LC_ALL", "C").env("LANG", "C").env("SOFTWARE", "InsurCraft");
     c
 }
 

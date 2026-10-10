@@ -9,14 +9,14 @@
 //! WinAnsi) or as a composite font with a predefined Unicode CMap such as `UniJIS-UTF16-H`, as
 //! Japanese forms use (text encoded in that CMap). Otherwise (other composite fonts, missing
 //! resources) Helvetica is used, so text is always visible. Widths use the approximate metrics
-//! of `pdfcraft-fonts` (Helvetica, or one em per full-width character in composite fonts).
+//! of `insurcraft-fonts` (Helvetica, or one em per full-width character in composite fonts).
 //!
 //! `/MK /R` (0, 90, 180, 270, counterclockwise) lays the content out in the upright box and sets
 //! the appearance `/Matrix` so that box lands on the widget rectangle. Any other value is 0, and
 //! rotation 0 leaves `/Matrix` off.
 
-use pdfcraft_cos::{Dict, Document, Object, Stream};
-use pdfcraft_fonts::{UnicodeCMap, cjk_width, helvetica_width, literal, win_ansi, wrap_with};
+use insurcraft_cos::{Dict, Document, Object, Stream};
+use insurcraft_fonts::{UnicodeCMap, cjk_width, helvetica_width, literal, win_ansi, wrap_with};
 
 use crate::{Field, FieldKind, Widget, acroform, flags};
 

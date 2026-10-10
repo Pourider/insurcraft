@@ -1,6 +1,6 @@
 use std::sync::Arc;
 
-use pdfcraft_cos::{Document, SaveOptions, write_incremental};
+use insurcraft_cos::{Document, SaveOptions, write_incremental};
 
 use super::*;
 
@@ -40,7 +40,7 @@ fn reopen(doc: &Document) -> Document {
 
 /// The decoded content streams of a page, in order.
 fn streams(doc: &Document, page: usize) -> Vec<String> {
-    let p = &pdfcraft_model::pages(doc)[page];
+    let p = &insurcraft_model::pages(doc)[page];
     let c = p.dict.get(b"Contents").cloned();
     let list = match c.map(|c| doc.resolve(&c)).as_deref() {
         Some(Object::Array(a)) => a.clone(),
@@ -77,7 +77,7 @@ fn header_and_footer_are_drawn_in_display_space_and_wrap_the_original_content() 
     let s0 = streams(&doc, 0);
     // q-wrapper, original, Q-wrapper, header/footer.
     assert_eq!(s0.len(), 4, "{s0:?}");
-    assert_eq!((s0[0].as_str(), s0[2].as_str()), ("q %PdfCraft\n", "Q %PdfCraft\n"));
+    assert_eq!((s0[0].as_str(), s0[2].as_str()), ("q %InsurCraft\n", "Q %InsurCraft\n"));
     let mark = &s0[3];
     assert!(mark.contains("/PCMark /HeaderFooter") && mark.contains("(Page 1 of 3) Tj") && mark.contains("(Confidential \\(draft\\)) Tj"), "{mark}");
     assert!(mark.contains("1 0 0 1 0 0 cm"), "upright page: identity");
@@ -86,11 +86,11 @@ fn header_and_footer_are_drawn_in_display_space_and_wrap_the_original_content() 
     assert!(s1.last().unwrap().contains("0 1 -1 0 600 0 cm") && s1.last().unwrap().contains("(Page 2 of 3)"), "{s1:?}");
     // A page without content gets just the mark; its inherited resources are copied, not changed.
     assert_eq!(streams(&doc, 2).len(), 1);
-    let p2 = &pdfcraft_model::pages(&doc)[2];
+    let p2 = &insurcraft_model::pages(&doc)[2];
     let res = doc.resolve(p2.dict.get(b"Resources").unwrap());
     let fonts = doc.resolve(res.as_dict().unwrap().get(b"Font").unwrap());
     assert!(fonts.as_dict().unwrap().contains(b"PCHelv") && fonts.as_dict().unwrap().contains(b"F1"));
-    let shared = doc.get(pdfcraft_cos::ObjRef::new(6, 0));
+    let shared = doc.get(insurcraft_cos::ObjRef::new(6, 0));
     let shared_fonts = doc.resolve(shared.as_dict().unwrap().get(b"Font").unwrap());
     assert!(!shared_fonts.as_dict().unwrap().contains(b"PCHelv"), "the shared dictionary is untouched");
     assert_eq!(marks_present(&doc), [MarkKind::HeaderFooter]);
@@ -145,7 +145,7 @@ fn invalid_requests_change_nothing() {
 
 #[test]
 fn flattening_draws_appearances_into_the_page_and_removes_the_comments() {
-    use pdfcraft_annot::{Meta, NewAnnotation, NoteIcon, Shape, Style, add_annotation, add_reply};
+    use insurcraft_annot::{Meta, NewAnnotation, NoteIcon, Shape, Style, add_annotation, add_reply};
     let mut doc = fixture();
     let meta = Meta { date: None, id: "x".into() };
     let add = |doc: &mut Document, shape: Shape| {
@@ -159,7 +159,7 @@ fn flattening_draws_appearances_into_the_page_and_removes_the_comments() {
     let n = flatten(&mut doc, &[0], true, false).unwrap();
     assert_eq!(n, 2, "the rectangle and the note icon are drawn; the reply has nothing to draw");
     let doc = reopen(&doc);
-    let p = &pdfcraft_model::pages(&doc)[0];
+    let p = &insurcraft_model::pages(&doc)[0];
     assert!(!p.dict.contains(b"Annots"), "comments, pop-up and reply are gone");
     let s = streams(&doc, 0);
     assert_eq!(s.len(), before.len() + 3, "wrapped original + flattened content: {s:?}");
@@ -181,7 +181,7 @@ fn flattening_draws_appearances_into_the_page_and_removes_the_comments() {
 #[test]
 fn added_items_follow_the_page_user_unit() {
     let mut doc = fixture();
-    let page = pdfcraft_model::pages(&doc)[2].obj;
+    let page = insurcraft_model::pages(&doc)[2].obj;
     doc.update_dict(page, |d| d.set(b"UserUnit".to_vec(), Object::Int(2))).unwrap();
     let text = AddedText { rect: [72.0, 600.0, 300.0, 700.0], text: "Scaled".into(), size: 14.0, ..AddedText::default() };
     add_content(&mut doc, 2, &Content::Text(text.clone())).unwrap();
@@ -265,7 +265,7 @@ fn added_arabic_text_is_shaped_in_display_order_and_stays_searchable() {
     let mut doc = fixture();
     let text =
         AddedText { rect: [72.0, 600.0, 400.0, 700.0], text: "مرحبا World".into(), size: 14.0, align: Align::Right, ..AddedText::default() };
-    if pdfcraft_fonts::document_arabic_font().is_none() {
+    if insurcraft_fonts::document_arabic_font().is_none() {
         eprintln!("skipping the Arabic drawing checks: built without a craft-fonts Arab face (set CRAFT_FONTS_DIR)");
         let err = add_content(&mut doc, 0, &Content::Text(text)).unwrap_err();
         assert!(matches!(&err, EditError::Invalid(m) if m.contains("CRAFT_FONTS_DIR")), "{err:?}");
@@ -291,7 +291,7 @@ fn added_arabic_text_is_shaped_in_display_order_and_stays_searchable() {
     let arabic_x = x_before(item, item[arabic_at..].find(" Tj").unwrap() + arabic_at);
     assert!(latin_x < arabic_x, "{item}");
     // The Arabic glyphs come from Type 3 fonts whose ToUnicode maps give back each letter.
-    let p = &pdfcraft_model::pages(&doc)[0];
+    let p = &insurcraft_model::pages(&doc)[0];
     let res = doc.resolve(p.dict.get(b"Resources").unwrap());
     let fonts = doc.resolve(res.as_dict().unwrap().get(b"Font").unwrap()).as_dict().unwrap().clone();
     let arabic: Vec<_> = fonts.iter().filter(|(k, _)| k.starts_with(b"PCAr")).map(|(_, v)| doc.resolve(v).as_dict().unwrap().clone()).collect();
@@ -308,7 +308,7 @@ fn added_arabic_text_is_shaped_in_display_order_and_stays_searchable() {
 
 /// The `PCAr` font names in page `page`'s resources.
 fn arabic_font_names(doc: &Document, page: usize) -> Vec<String> {
-    let p = &pdfcraft_model::pages(doc)[page];
+    let p = &insurcraft_model::pages(doc)[page];
     let Some(res) = p.dict.get(b"Resources").map(|r| doc.resolve(r)) else { return vec![] };
     let Some(fonts) = res.as_dict().and_then(|r| r.get(b"Font")).map(|f| doc.resolve(f)) else { return vec![] };
     fonts.as_dict().unwrap().iter().map(|(k, _)| String::from_utf8_lossy(k).into_owned()).filter(|k| k.starts_with("PCAr")).collect()
@@ -318,7 +318,7 @@ fn arabic_font_names(doc: &Document, page: usize) -> Vec<String> {
 fn arabic_items_keep_their_own_fonts_through_saves_updates_and_deletes() {
     let mut doc = fixture();
     let text = AddedText { rect: [72.0, 600.0, 400.0, 700.0], text: "مرحبا".into(), size: 14.0, ..AddedText::default() };
-    if pdfcraft_fonts::document_arabic_font().is_none() {
+    if insurcraft_fonts::document_arabic_font().is_none() {
         // An item that already holds Arabic (stored by an older version, drawn as "?") can still
         // be moved and retyped without the face.
         add_content(&mut doc, 0, &Content::Text(AddedText { text: "x".into(), ..text.clone() })).unwrap();
@@ -334,13 +334,13 @@ fn arabic_items_keep_their_own_fonts_through_saves_updates_and_deletes() {
     }
     let mut res = Dict::new();
     res.set(b"Font".to_vec(), Object::Dict(taken));
-    let page = pdfcraft_model::pages(&doc)[0].obj;
+    let page = insurcraft_model::pages(&doc)[0].obj;
     doc.update_dict(page, |d| d.set(b"Resources".to_vec(), Object::Dict(res))).unwrap();
     add_content(&mut doc, 0, &Content::Text(text.clone())).unwrap();
     add_content(&mut doc, 0, &Content::Text(AddedText { text: "شكرا".into(), rect: [72.0, 500.0, 400.0, 520.0], ..text.clone() })).unwrap();
     let names = arabic_font_names(&doc, 0);
     assert_eq!(names.len(), 1_999 + 2, "nothing replaced");
-    let p = &pdfcraft_model::pages(&doc)[0];
+    let p = &insurcraft_model::pages(&doc)[0];
     let fonts = doc.resolve(p.dict.get(b"Resources").unwrap()).as_dict().unwrap().get(b"Font").cloned().unwrap();
     let fonts = doc.resolve(&fonts).as_dict().unwrap().clone();
     assert_eq!(fonts.iter().filter(|(_, v)| v.as_name() == Some(&b"Taken"[..])).count(), 1_999);
@@ -371,7 +371,7 @@ fn odd_arabic_text_never_panics() {
     let long = "بسم الله ".repeat(2_000);
     for s in ["\u{202E}ب\u{064B}\u{064B} (]", "\u{064B}", "ا\u{200F}\u{2067}b\u{2069}", "ا\n\nب\tc", "ﷺ ١٢٣ 456", long.as_str()] {
         let r = add_content(&mut doc, 0, &Content::Text(AddedText { rect: [0.0, 800.0, 300.0, 780.0], text: s.into(), ..AddedText::default() }));
-        assert_eq!(r.is_ok(), pdfcraft_fonts::document_arabic_font().is_some(), "{:?}: {r:?}", s.chars().take(12).collect::<String>());
+        assert_eq!(r.is_ok(), insurcraft_fonts::document_arabic_font().is_some(), "{:?}: {r:?}", s.chars().take(12).collect::<String>());
     }
     // U+2029 and U+0085 (paragraph and line separators) have no WinAnsi code, so the standard font
     // would draw them as `?`: refused, by name, rather than written (#125). Laying it out still
@@ -382,11 +382,11 @@ fn odd_arabic_text_never_panics() {
         &Content::Text(AddedText { rect: [0.0, 800.0, 300.0, 780.0], text: "ا\u{2029}ب\rc\u{85}د\n".into(), ..AddedText::default() }),
     );
     assert!(r.is_err(), "{r:?}");
-    if pdfcraft_fonts::document_arabic_font().is_some() {
+    if insurcraft_fonts::document_arabic_font().is_some() {
         assert!(matches!(&r, Err(EditError::Invalid(m)) if m.contains("U+2029") || m.contains("U+0085")), "{r:?}");
     }
     // A character the face lacks is an error that names it, not a box or a crash.
-    if pdfcraft_fonts::document_arabic_font().is_some() && !pdfcraft_fonts::arabic_has('\u{FDFD}') {
+    if insurcraft_fonts::document_arabic_font().is_some() && !insurcraft_fonts::arabic_has('\u{FDFD}') {
         let r = add_content(
             &mut doc,
             0,
@@ -450,7 +450,7 @@ fn descriptor_text_page() -> Document {
 
 /// The Japanese fallback face comes from craft-fonts, an optional build input.
 fn without_craft_fonts(test: &str) -> bool {
-    if pdfcraft_fonts::document_japanese_font().is_some() {
+    if insurcraft_fonts::document_japanese_font().is_some() {
         return false;
     }
     eprintln!("skipping {test}: built without craft-fonts (set CRAFT_FONTS_DIR to run it)");
@@ -475,15 +475,15 @@ fn japanese_line_uses_unicode_type3_fallback() {
 
 fn styled_text_page(base: &str) -> Document {
     let mut doc = text_page("BT /F1 12 Tf 72 700 Td (Original) Tj ET");
-    let r = pdfcraft_cos::ObjRef::new(5, 0);
+    let r = insurcraft_cos::ObjRef::new(5, 0);
     let mut font = doc.get(r).as_dict().unwrap().clone();
-    font.set(b"BaseFont".to_vec(), pdfcraft_cos::Object::name(base));
-    doc.set(r, pdfcraft_cos::Object::Dict(font));
+    font.set(b"BaseFont".to_vec(), insurcraft_cos::Object::name(base));
+    doc.set(r, insurcraft_cos::Object::Dict(font));
     doc
 }
 
 fn fallback_paths(doc: &Document) -> Vec<Vec<u8>> {
-    let p = pdfcraft_model::pages(doc).swap_remove(0);
+    let p = insurcraft_model::pages(doc).swap_remove(0);
     let res = doc.resolve(p.dict.get(b"Resources").unwrap());
     let fonts = doc.resolve(res.as_dict().unwrap().get(b"Font").unwrap());
     let font = doc.resolve(fonts.as_dict().unwrap().get(b"PCJp").unwrap());
@@ -493,7 +493,7 @@ fn fallback_paths(doc: &Document) -> Vec<Vec<u8>> {
         .unwrap()
         .iter()
         .map(|(_, object)| match &*doc.resolve(object) {
-            pdfcraft_cos::Object::Stream(s) => s.decoded().unwrap(),
+            insurcraft_cos::Object::Stream(s) => s.decoded().unwrap(),
             other => panic!("expected a glyph stream, got {other:?}"),
         })
         .collect()
@@ -512,7 +512,7 @@ fn japanese_line_fallback_uses_real_source_family_and_weight() {
     text::replace_line(&mut bold, 0, 0, replacement).unwrap();
     text::replace_line(&mut serif, 0, 0, replacement).unwrap();
     assert_ne!(fallback_paths(&sans), fallback_paths(&serif), "sans source must not use Mincho outlines");
-    if pdfcraft_fonts::CRAFT_FONTS.iter().any(|f| f.family == "BIZ UDPGothic" && f.style == "Bold") {
+    if insurcraft_fonts::CRAFT_FONTS.iter().any(|f| f.family == "BIZ UDPGothic" && f.style == "Bold") {
         assert_ne!(fallback_paths(&sans), fallback_paths(&bold), "bold must change the actual glyph paths");
     }
     for doc in [&sans, &bold, &serif] {
@@ -547,7 +547,7 @@ fn japanese_paragraph_fallback_honors_requested_family_and_weight() {
     )
     .unwrap();
     assert_ne!(fallback_paths(&regular), fallback_paths(&serif), "requested serif must change actual outlines");
-    if pdfcraft_fonts::CRAFT_FONTS.iter().any(|f| f.family == "BIZ UDPGothic" && f.style == "Bold") {
+    if insurcraft_fonts::CRAFT_FONTS.iter().any(|f| f.family == "BIZ UDPGothic" && f.style == "Bold") {
         assert_ne!(fallback_paths(&regular), fallback_paths(&bold), "requested bold must change actual outlines");
         let mut source_bold = styled_text_page("Helvetica-Bold");
         text::replace_block(&mut source_bold, 0, 0, replacement).unwrap();
@@ -564,7 +564,7 @@ fn japanese_fallback_reports_the_face_after_save_and_reopen() {
         return;
     }
     // F2 is (a subset of) Arial: a regular sans face, so the fallback is the regular Gothic.
-    let face = pdfcraft_fonts::document_japanese_font_for_style(false, false).unwrap();
+    let face = insurcraft_fonts::document_japanese_font_for_style(false, false).unwrap();
     let expected = format!("{}-{}", face.family, face.style).replace(' ', "");
     for paragraph in [false, true] {
         let mut doc = text_page("BT /F2 12 Tf 72 700 Td (ab) Tj ET");
@@ -589,8 +589,8 @@ fn cyrillic_in_a_serif_line_falls_back_to_a_face_that_has_it() {
         return;
     }
     let replacement = "Привет, world";
-    let has_all = |f: &pdfcraft_fonts::CraftFont| replacement.chars().all(|ch| pdfcraft_fonts::japanese_glyph_from(f, ch).is_ok());
-    if !pdfcraft_fonts::CRAFT_FONTS.iter().any(|f| f.covers("Jpan") && has_all(f)) {
+    let has_all = |f: &insurcraft_fonts::CraftFont| replacement.chars().all(|ch| insurcraft_fonts::japanese_glyph_from(f, ch).is_ok());
+    if !insurcraft_fonts::CRAFT_FONTS.iter().any(|f| f.covers("Jpan") && has_all(f)) {
         eprintln!("skipping: no Japanese fallback face has Cyrillic");
         return;
     }
@@ -675,7 +675,7 @@ fn cyrillic_replacement_in_a_serif_line_uses_a_face_with_the_letters() {
 
 /// The `/Widths` of the page's Type 3 fallback font, for its Cyrillic letters.
 fn fallback_widths(doc: &Document) -> Vec<f64> {
-    let p = pdfcraft_model::pages(doc).swap_remove(0);
+    let p = insurcraft_model::pages(doc).swap_remove(0);
     let res = doc.resolve(p.dict.get(b"Resources").unwrap());
     let fonts = doc.resolve(res.as_dict().unwrap().get(b"Font").unwrap());
     let font = doc.resolve(fonts.as_dict().unwrap().get(b"PCJp").unwrap());
@@ -713,7 +713,7 @@ fn japanese_edit_without_craft_fonts_is_a_clear_error() {
     let before = page_content_bytes(&doc, 0);
     let line = text::replace_line(&mut doc, 0, 0, "日本語の文字");
     let block = text::replace_block(&mut doc, 0, 0, "日本語の文字");
-    if pdfcraft_fonts::document_japanese_font().is_some() {
+    if insurcraft_fonts::document_japanese_font().is_some() {
         eprintln!("built with craft-fonts: the Japanese edits succeed (checked by the tests above)");
         assert!(line.is_ok() && block.is_ok());
         return;
@@ -807,7 +807,7 @@ fn assert_split_tokens_kept(doc: &Document, new_text: &str) {
     let joined = streams(doc, 0).join("\n");
     assert!(joined.contains(new_text) && !joined.contains("Target"), "{joined}");
     assert!(joined.contains("[(After) -20 (wards)]"), "the text after the line is gone: {joined}");
-    for op in pdfcraft_content::parse(joined.as_bytes()).ops {
+    for op in insurcraft_content::parse(joined.as_bytes()).ops {
         let want = match op.op.as_slice() {
             b"BDC" => 2,
             b"TJ" => 1,
@@ -834,9 +834,9 @@ fn editing_text_keeps_the_tokens_a_stream_shares_with_its_neighbours() {
 }
 
 /// The operators of the page's pieces joined back into one stream, each checked for operands.
-fn joined_ops(doc: &Document) -> (String, Vec<pdfcraft_content::Op>) {
+fn joined_ops(doc: &Document) -> (String, Vec<insurcraft_content::Op>) {
     let joined = streams(doc, 0).join("\n");
-    let ops = pdfcraft_content::parse(joined.as_bytes());
+    let ops = insurcraft_content::parse(joined.as_bytes());
     assert_eq!(ops.skipped, 0, "stray tokens: {joined}");
     (joined, ops.ops)
 }
@@ -920,7 +920,7 @@ fn paragraphs_are_found_and_rewrapped() {
     assert_eq!(blocks[0].lines, [0, 1, 2]);
     let width = blocks[0].rect[2] - blocks[0].rect[0];
     let next = blocks[1].rect;
-    let long = "PdfCraft rewraps a paragraph to its own width when its text changes, keeping the font, size, colour and line spacing.";
+    let long = "InsurCraft rewraps a paragraph to its own width when its text changes, keeping the font, size, colour and line spacing.";
     assert_eq!(text::replace_block(&mut doc, 0, 0, long).unwrap().substituted, None);
     let doc = reopen(&doc);
     let lines = text::text_lines(&doc, 0).unwrap();
@@ -947,14 +947,14 @@ fn paragraphs_are_found_and_rewrapped() {
 }
 
 fn page_content_bytes(doc: &Document, page: usize) -> Vec<u8> {
-    let p = pdfcraft_model::pages(doc).swap_remove(page);
+    let p = insurcraft_model::pages(doc).swap_remove(page);
     let c = p.dict.get(b"Contents").unwrap();
     match &*doc.resolve(c) {
-        pdfcraft_cos::Object::Stream(s) => s.decoded().unwrap(),
-        pdfcraft_cos::Object::Array(a) => a
+        insurcraft_cos::Object::Stream(s) => s.decoded().unwrap(),
+        insurcraft_cos::Object::Array(a) => a
             .iter()
             .flat_map(|x| match &*doc.resolve(x) {
-                pdfcraft_cos::Object::Stream(s) => s.decoded().unwrap(),
+                insurcraft_cos::Object::Stream(s) => s.decoded().unwrap(),
                 _ => Vec::new(),
             })
             .collect(),
@@ -1014,16 +1014,16 @@ fn page_images_move_turn_replace_and_delete() {
     // The text after it is untouched.
     assert_eq!(text::text_lines(&doc, 0).unwrap()[0].text, "Caption");
     // Replace with another image object, in the same place.
-    let mut d = pdfcraft_cos::Dict::new();
+    let mut d = insurcraft_cos::Dict::new();
     for (k, v) in [
-        (&b"Type"[..], pdfcraft_cos::Object::name("XObject")),
-        (b"Subtype", pdfcraft_cos::Object::name("Image")),
-        (b"Width", pdfcraft_cos::Object::Int(1)),
-        (b"Height", pdfcraft_cos::Object::Int(1)),
+        (&b"Type"[..], insurcraft_cos::Object::name("XObject")),
+        (b"Subtype", insurcraft_cos::Object::name("Image")),
+        (b"Width", insurcraft_cos::Object::Int(1)),
+        (b"Height", insurcraft_cos::Object::Int(1)),
     ] {
         d.set(k.to_vec(), v);
     }
-    let other = doc.add(pdfcraft_cos::Object::Stream(pdfcraft_cos::Stream::from_raw(d, vec![0])));
+    let other = doc.add(insurcraft_cos::Object::Stream(insurcraft_cos::Stream::from_raw(d, vec![0])));
     images::change_image(&mut doc, 0, 0, &images::ImageChange::Replace(other)).unwrap();
     let imgs = images::page_images(&doc, 0).unwrap();
     assert_eq!((imgs[0].object, imgs[0].width), (Some(other), 1));
@@ -1042,14 +1042,14 @@ fn form_artwork_edits_only_the_selected_placement() {
     form.set(b"BBox".to_vec(), Object::Array([10, 20, 110, 70].map(Object::Int).to_vec()));
     form.set(b"Matrix".to_vec(), Object::Array([2, 0, 0, 3, -20, -60].map(Object::Int).to_vec()));
     let artwork = doc.add(Object::Stream(Stream::flate(form, b"1 0 0 rg 10 20 100 50 re f")));
-    doc.update_dict(pdfcraft_cos::ObjRef::new(6, 0), |d| {
+    doc.update_dict(insurcraft_cos::ObjRef::new(6, 0), |d| {
         let mut xo = Dict::new();
         xo.set(b"Figure".to_vec(), Object::Ref(artwork));
         d.set(b"XObject".to_vec(), Object::Dict(xo));
     })
     .unwrap();
     let content = b"q 1 0 0 1 40 80 cm /Figure Do Q q 1 0 0 1 300 400 cm /Figure Do Q BT /F1 9 Tf (Caption) Tj ET";
-    doc.set(pdfcraft_cos::ObjRef::new(7, 0), Object::Stream(Stream::flate(Dict::new(), content)));
+    doc.set(insurcraft_cos::ObjRef::new(7, 0), Object::Stream(Stream::flate(Dict::new(), content)));
     let mut doc = reopen(&doc);
     let original = doc.get(artwork);
     let imgs = images::page_images(&doc, 0).unwrap();
@@ -1125,13 +1125,13 @@ fn a_new_paragraph_colour_does_not_spill_into_the_text_after_it() {
     text::rewrite_block(&mut doc, 0, 0, None, &style).unwrap();
     let doc = reopen(&doc);
     // The fill colour in force where the second paragraph is shown (q/Q nest it).
-    let ops = pdfcraft_content::parse(&page_content_bytes(&doc, 0)).ops;
+    let ops = insurcraft_content::parse(&page_content_bytes(&doc, 0)).ops;
     let (mut fill, mut stack) = (String::from("0 g"), Vec::new());
     for op in &ops {
         match op.op.as_slice() {
             b"q" => stack.push(fill.clone()),
             b"Q" => fill = stack.pop().unwrap_or_default(),
-            b"g" | b"rg" | b"k" => fill = String::from_utf8_lossy(&pdfcraft_content::serialize_ops(std::slice::from_ref(op))).trim().to_string(),
+            b"g" | b"rg" | b"k" => fill = String::from_utf8_lossy(&insurcraft_content::serialize_ops(std::slice::from_ref(op))).trim().to_string(),
             b"Tj" if op.operands.first().and_then(|o| o.as_string()).is_some_and(|s| s.to_text() == "Second paragraph") => break,
             _ => {}
         }
@@ -1168,7 +1168,7 @@ fn recolouring_a_paragraph_in_a_shared_text_object_keeps_order_and_nesting() {
     let doc = reopen(&doc);
     let texts: Vec<String> = text::text_blocks(&doc, 0).unwrap().into_iter().map(|b| b.text).collect();
     assert_eq!(texts, ["First paragraph", "Second paragraph", "Third paragraph"]);
-    let ops = pdfcraft_content::parse(&page_content_bytes(&doc, 0)).ops;
+    let ops = insurcraft_content::parse(&page_content_bytes(&doc, 0)).ops;
     let (mut in_text, mut depth, mut red) = (false, 0usize, Vec::new());
     for op in &ops {
         match op.op.as_slice() {
@@ -1378,7 +1378,7 @@ fn page_text_the_standard_fonts_cant_draw_is_refused() {
     // U+061C is in the Arabic block but is a direction mark that's dropped, not shaped: it never
     // makes text drawable, nor (with the face) undrawable.
     assert!(add_content(&mut doc, 0, &Content::Text(arabic("\u{061C}中"))).is_err());
-    if pdfcraft_fonts::arabic_has('م') {
+    if insurcraft_fonts::arabic_has('م') {
         add_content(&mut doc, 0, &Content::Text(arabic("مرحبا Hello"))).unwrap();
         add_content(&mut doc, 0, &Content::Text(arabic("\u{061C}Hello"))).unwrap();
         for text in ["مرحبا 中", "\u{061C}中"] {
@@ -1400,22 +1400,22 @@ fn page_text_the_standard_fonts_cant_draw_is_refused() {
     }
 }
 
-fn xobject(doc: &Document, page: usize, name: &[u8]) -> Option<pdfcraft_cos::ObjRef> {
-    let p = &pdfcraft_model::pages(doc)[page];
+fn xobject(doc: &Document, page: usize, name: &[u8]) -> Option<insurcraft_cos::ObjRef> {
+    let p = &insurcraft_model::pages(doc)[page];
     let res = doc.resolve(p.dict.get(b"Resources")?);
     let xo = doc.resolve(res.as_dict()?.get(b"XObject")?);
     xo.as_dict()?.get(name).and_then(Object::as_ref)
 }
 
-fn annot_at(doc: &Document, page: usize, index: usize) -> pdfcraft_cos::ObjRef {
-    let p = &pdfcraft_model::pages(doc)[page];
+fn annot_at(doc: &Document, page: usize, index: usize) -> insurcraft_cos::ObjRef {
+    let p = &insurcraft_model::pages(doc)[page];
     let list = doc.resolve(p.dict.get(b"Annots").unwrap());
     list.as_array().unwrap()[index].as_ref().unwrap()
 }
 
 #[test]
 fn fill_sign_flatten_bakes_marks_keeps_other_comments_and_does_not_reuse_pcfl0() {
-    use pdfcraft_annot::{FillMark, Markup, Meta, NewAnnotation, Shape, Style, add_annotation, summaries};
+    use insurcraft_annot::{FillMark, Markup, Meta, NewAnnotation, Shape, Style, add_annotation, summaries};
     let mut doc = fixture();
     assert_eq!(flatten_fill_sign(&mut doc, &[0]).unwrap(), 0);
     assert!(!doc.is_modified(), "nothing to flatten leaves the file alone");
@@ -1436,7 +1436,7 @@ fn fill_sign_flatten_bakes_marks_keeps_other_comments_and_does_not_reuse_pcfl0()
     .unwrap();
     add(&mut doc, Shape::Mark { rect: [100.0, 100.0, 120.0, 120.0], mark: FillMark::Check }, "");
     add(&mut doc, Shape::Signature { strokes: vec![vec![[10.0, 50.0], [40.0, 80.0], [70.0, 50.0]]] }, "");
-    doc.update_dict(annot_at(&doc, 0, 2), |d| d.set(b"Subj".to_vec(), pdfcraft_cos::PdfString::text("Pencil"))).unwrap();
+    doc.update_dict(annot_at(&doc, 0, 2), |d| d.set(b"Subj".to_vec(), insurcraft_cos::PdfString::text("Pencil"))).unwrap();
     add(&mut doc, Shape::TypedSignature { rect: [20.0, 40.0, 90.0, 70.0], contours: vec![vec![[0.1, 0.2], [0.5, 0.9], [0.9, 0.2]]] }, "");
     add(&mut doc, Shape::TextMarkup { kind: Markup::Highlight, quads: vec![[20.0, 400.0, 80.0, 400.0, 20.0, 390.0, 80.0, 390.0]] }, "keep");
     add(&mut doc, Shape::TextBox { rect: [20.0, 300.0, 140.0, 340.0], font_size: 12.0 }, "Note");
@@ -1538,7 +1538,7 @@ fn reading_follows_form_xobjects() {
     // a page image.
     let own = images::page_images(&doc, 0).unwrap();
     assert_eq!(own.len(), 1, "{own:?}");
-    assert!(own[0].is_form && own[0].object == Some(pdfcraft_cos::ObjRef::new(6, 0)), "{own:?}");
+    assert!(own[0].is_form && own[0].object == Some(insurcraft_cos::ObjRef::new(6, 0)), "{own:?}");
 }
 
 /// A chain of forms, each drawing the next twenty times, twelve deep: within the depth cap but

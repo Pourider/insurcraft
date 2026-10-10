@@ -150,7 +150,7 @@ fn imposed_pdf_has_the_sheets_and_honours_comments_and_forms() {
     let doc = fixture(3);
     let out = impose(&doc, &settings(vec![0, 1, 2], Layout::multiple(2))).unwrap();
     let printed = Document::open(Arc::new(out.clone())).unwrap();
-    let pages = pdfcraft_model::pages(&printed);
+    let pages = insurcraft_model::pages(&printed);
     assert_eq!(pages.len(), 2);
     assert_eq!(pages[0].crop(&printed), [0.0, 0.0, 792.0, 612.0]);
     // The source pages are form XObjects holding their content.
@@ -308,7 +308,7 @@ fn multiple_rejects_hostile_grids_without_panicking() {
 }
 
 /// Set on the child process when a test runs this test binary as a stand-in for `lp`.
-const STAND_IN_LP: &str = "PDFCRAFT_STAND_IN_LP";
+const STAND_IN_LP: &str = "INSURCRAFT_STAND_IN_LP";
 
 /// Not a test of its own: [`stand_in_lp`] re-runs this binary with only this test selected, and it
 /// then plays `lp`. It records its arguments and stdin in the folder named by [`STAND_IN_LP`], or,
@@ -338,13 +338,13 @@ fn stand_in_lp(record: &std::ffi::OsStr) -> std::process::Command {
 
 #[test]
 fn print_jobs_reach_lp_on_stdin_never_through_a_shared_temp_folder() {
-    // The job used to be written to `<temp>/pdfcraft-print-<pid>/job-<time>.pdf` and handed to `lp`
+    // The job used to be written to `<temp>/insurcraft-print-<pid>/job-<time>.pdf` and handed to `lp`
     // by name. In a shared /tmp another local user can predict that folder, create it first (or
     // plant a symlink there) and so read every printed document or swap the file before `lp`
     // reads it. Piping the job to `lp` leaves nothing on disk.
     static N: std::sync::atomic::AtomicU32 = std::sync::atomic::AtomicU32::new(0);
     let record =
-        std::env::temp_dir().join(format!("pdfcraft-print-test-{}-{}", std::process::id(), N.fetch_add(1, std::sync::atomic::Ordering::Relaxed)));
+        std::env::temp_dir().join(format!("insurcraft-print-test-{}-{}", std::process::id(), N.fetch_add(1, std::sync::atomic::Ordering::Relaxed)));
     std::fs::create_dir(&record).unwrap();
     // Bigger than any pipe buffer, so the spooler must read while the job is still being written.
     let pdf: Vec<u8> = b"%PDF-1.7 synthetic print job\n".iter().copied().cycle().take(3 << 20).collect();
@@ -360,7 +360,7 @@ fn print_jobs_reach_lp_on_stdin_never_through_a_shared_temp_folder() {
         "no file argument: lp reads the job from stdin"
     );
     assert!(stdin.unwrap() == pdf, "lp receives the whole job on stdin");
-    let predictable = std::env::temp_dir().join(format!("pdfcraft-print-{}", std::process::id()));
+    let predictable = std::env::temp_dir().join(format!("insurcraft-print-{}", std::process::id()));
     assert!(!predictable.exists(), "nothing is created at {predictable:?}, a name other local users can predict");
 }
 

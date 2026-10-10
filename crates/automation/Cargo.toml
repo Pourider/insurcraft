@@ -1,6 +1,6 @@
 [package]
-name = "pdfcraft-automation"
-description = "Agent control for PdfCraft: a headless tool set over the engine and an MCP server"
+name = "insurcraft-automation"
+description = "Agent control for InsurCraft: a headless tool set over the engine and an MCP server"
 version.workspace = true
 edition.workspace = true
 license.workspace = true
@@ -9,10 +9,10 @@ license.workspace = true
 workspace = true
 
 [dependencies]
-pdfcraft-engine = { workspace = true }
-pdfcraft-render = { workspace = true }
-pdfcraft-organize = { workspace = true }
-pdfcraft-platform = { workspace = true }
+insurcraft-engine = { workspace = true }
+insurcraft-render = { workspace = true }
+insurcraft-organize = { workspace = true }
+insurcraft-platform = { workspace = true }
 serde_json = { workspace = true }
 png = "0.18"
 base64 = { version = "0.22", optional = true }
@@ -24,7 +24,7 @@ default = ["mcp"]
 mcp = ["dep:base64"]
 
 [dev-dependencies]
-pdfcraft-cos = { workspace = true }
-pdfcraft-model = { workspace = true }
-pdfcraft-xfa = { workspace = true }
+insurcraft-cos = { workspace = true }
+insurcraft-model = { workspace = true }
+insurcraft-xfa = { workspace = true }
 image = { version = "0.25", default-features = false, features = ["jpeg"] }

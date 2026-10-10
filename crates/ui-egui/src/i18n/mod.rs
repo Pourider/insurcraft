@@ -695,8 +695,8 @@ mod tests {
     /// (catalogs once keyed an older `PRINTCRAFT_MODELS` wording, which never matched).
     #[test]
     fn missing_ocr_models_messages_are_translated() {
-        let error = pdfcraft_engine::ocr::OcrError::NoModels.to_string();
-        let notice = "Text recognition isn't installed: its model files are missing. Reinstall PdfCraft, or set PDFCRAFT_MODELS to the folder that holds them.";
+        let error = insurcraft_engine::ocr::OcrError::NoModels.to_string();
+        let notice = "Text recognition isn't installed: its model files are missing. Reinstall InsurCraft, or set INSURCRAFT_MODELS to the folder that holds them.";
         assert!(include_str!("../ocr_ui.rs").contains(notice), "keep in step with ocr_ui.rs");
         for code in ["bg", "de", "es", "fr", "hu", "ja", "ru", "te", "uk", "zh-hans", "zh-hant"] {
             let lang = Lang::from_code(code).expect("registered");
@@ -710,10 +710,10 @@ mod tests {
     /// Japanese translates every registered command and every All tools group, section and item.
     #[test]
     fn japanese_covers_commands_and_catalogue() {
-        for command in pdfcraft_engine::commands::COMMANDS {
+        for command in insurcraft_engine::commands::COMMANDS {
             assert!(has(JA(), command.label), "missing command: {}", command.label);
         }
-        for group in pdfcraft_engine::catalog::TOOL_GROUPS {
+        for group in insurcraft_engine::catalog::TOOL_GROUPS {
             assert!(has(JA(), group.label), "missing group: {}", group.label);
             for section in group.sections {
                 assert!(has(JA(), section.title), "missing section: {}", section.title);
@@ -820,13 +820,13 @@ mod tests {
     #[test]
     fn italian_covers_commands_and_catalogue() {
         let it = Lang::from_code("it").expect("it registered");
-        for command in pdfcraft_engine::commands::COMMANDS {
+        for command in insurcraft_engine::commands::COMMANDS {
             assert!(has(it, command.label), "missing command: {}", command.label);
             if let Some(menu) = command.menu {
                 assert!(has(it, menu), "missing menu: {menu}");
             }
         }
-        for group in pdfcraft_engine::catalog::TOOL_GROUPS {
+        for group in insurcraft_engine::catalog::TOOL_GROUPS {
             assert!(has(it, group.label), "missing group: {}", group.label);
             for section in group.sections {
                 assert!(has(it, section.title), "missing section: {}", section.title);
@@ -851,7 +851,7 @@ mod tests {
     /// and with BIZ UDPGothic Regular alone (the web build's only Japanese face).
     #[test]
     fn japanese_labels_have_glyphs() {
-        let craft = pdfcraft_fonts::ui_japanese_fonts();
+        let craft = insurcraft_fonts::ui_japanese_fonts();
         let Some(web) = craft.iter().find(|f| f.family == "BIZ UDPGothic" && f.style == "Regular") else {
             eprintln!("skipping Japanese glyph checks: build with CRAFT_FONTS_DIR to run them");
             return;
@@ -861,7 +861,7 @@ mod tests {
         let web_name = web.name();
         let mut web_only = crate::theme::font_definitions();
         for family in web_only.families.values_mut() {
-            family.retain(|name| !pdfcraft_fonts::CRAFT_FONTS.iter().any(|face| face.name() == *name) || *name == web_name);
+            family.retain(|name| !insurcraft_fonts::CRAFT_FONTS.iter().any(|face| face.name() == *name) || *name == web_name);
         }
         use egui::epaint::text::{Fonts, TextOptions};
         for (build, defs) in [("desktop", crate::theme::font_definitions()), ("web", web_only)] {
@@ -906,13 +906,13 @@ mod tests {
 
     #[test]
     fn language_persists_and_invalid_input_keeps_current_language() {
-        let mut app = crate::PdfCraftApp::default();
+        let mut app = crate::InsurCraftApp::default();
         assert_eq!(app.language, AUTO);
         app.set_option("language", "JA").unwrap();
         assert_eq!(app.language, "ja");
         assert!(app.set_option("language", "xx").is_err());
         assert_eq!(app.language, "ja");
-        let mut restored = crate::PdfCraftApp::default();
+        let mut restored = crate::InsurCraftApp::default();
         restored.restore(&app.persist());
         assert_eq!(restored.language, "ja");
         restored.restore(r#"{"language":"xx"}"#);
@@ -920,7 +920,7 @@ mod tests {
         app.set_option("language", AUTO).unwrap();
         assert_eq!(app.language, AUTO);
         // Settings written before the system-locale default (no key) follow the system.
-        let mut legacy = crate::PdfCraftApp::default();
+        let mut legacy = crate::InsurCraftApp::default();
         legacy.restore("{}");
         assert_eq!(legacy.language, AUTO);
     }
@@ -938,10 +938,10 @@ mod tests {
         assert_eq!(tr(pt, "Save as…"), "Salvar como…");
         assert_eq!(tr(pt, "Arquivo do usuário.pdf"), "Arquivo do usuário.pdf");
         assert_eq!((0..=3).map(|n| (pt.0.plural)(n)).collect::<Vec<_>>(), [0, 0, 1, 1]);
-        let mut app = crate::PdfCraftApp::default();
+        let mut app = crate::InsurCraftApp::default();
         app.set_option("language", "pt-br").unwrap();
         assert_eq!(app.language, "pt-br");
-        let mut restored = crate::PdfCraftApp::default();
+        let mut restored = crate::InsurCraftApp::default();
         restored.restore(&app.persist());
         assert_eq!(restored.language, "pt-br");
     }
@@ -950,13 +950,13 @@ mod tests {
     #[test]
     fn brazilian_portuguese_covers_commands_and_catalogue() {
         let pt = Lang::from_code("pt-br").expect("pt-br registered");
-        for command in pdfcraft_engine::commands::COMMANDS {
+        for command in insurcraft_engine::commands::COMMANDS {
             assert!(has(pt, command.label), "missing command: {}", command.label);
             if let Some(menu) = command.menu {
                 assert!(has(pt, menu), "missing menu: {menu}");
             }
         }
-        for group in pdfcraft_engine::catalog::TOOL_GROUPS {
+        for group in insurcraft_engine::catalog::TOOL_GROUPS {
             assert!(has(pt, group.label), "missing group: {}", group.label);
             for section in group.sections {
                 assert!(has(pt, section.title), "missing section: {}", section.title);
@@ -1031,10 +1031,10 @@ mod tests {
         assert_eq!(tr(es, "Informe del usuario.pdf"), "Informe del usuario.pdf");
         assert_eq!(trn(es, 1, "{n} page", "{n} pages"), "1 página");
         assert_eq!(trn(es, 3, "{n} page", "{n} pages"), "3 páginas");
-        let mut app = crate::PdfCraftApp::default();
+        let mut app = crate::InsurCraftApp::default();
         app.set_option("language", "es").unwrap();
         assert_eq!(app.language, "es");
-        let mut restored = crate::PdfCraftApp::default();
+        let mut restored = crate::InsurCraftApp::default();
         restored.restore(&app.persist());
         assert_eq!(restored.language, "es");
     }
@@ -1043,10 +1043,10 @@ mod tests {
     #[test]
     fn spanish_covers_commands_and_catalogue() {
         let es = Lang::from_code("es").expect("es registered");
-        for command in pdfcraft_engine::commands::COMMANDS {
+        for command in insurcraft_engine::commands::COMMANDS {
             assert!(has(es, command.label), "missing command: {}", command.label);
         }
-        for group in pdfcraft_engine::catalog::TOOL_GROUPS {
+        for group in insurcraft_engine::catalog::TOOL_GROUPS {
             assert!(has(es, group.label), "missing group: {}", group.label);
             for section in group.sections {
                 assert!(has(es, section.title), "missing section: {}", section.title);
@@ -1069,10 +1069,10 @@ mod tests {
         assert_eq!(tr(te, "నివేదిక.pdf"), "నివేదిక.pdf");
         assert_eq!(trn(te, 1, "{n} page", "{n} pages"), "1 పేజీ");
         assert_eq!(trn(te, 3, "{n} page", "{n} pages"), "3 పేజీలు");
-        let mut app = crate::PdfCraftApp::default();
+        let mut app = crate::InsurCraftApp::default();
         app.set_option("language", "te").unwrap();
         assert_eq!(app.language, "te");
-        let mut restored = crate::PdfCraftApp::default();
+        let mut restored = crate::InsurCraftApp::default();
         restored.restore(&app.persist());
         assert_eq!(restored.language, "te");
     }
@@ -1108,10 +1108,10 @@ mod tests {
     #[test]
     fn telugu_covers_commands_and_catalogue() {
         let te = Lang::from_code("te").expect("te registered");
-        for command in pdfcraft_engine::commands::COMMANDS {
+        for command in insurcraft_engine::commands::COMMANDS {
             assert!(has(te, command.label), "missing command: {}", command.label);
         }
-        for group in pdfcraft_engine::catalog::TOOL_GROUPS {
+        for group in insurcraft_engine::catalog::TOOL_GROUPS {
             assert!(has(te, group.label), "missing group: {}", group.label);
             for section in group.sections {
                 assert!(has(te, section.title), "missing section: {}", section.title);
@@ -1127,7 +1127,7 @@ mod tests {
     /// it; Telugu labels must not need a Japanese or Arabic face).
     #[test]
     fn telugu_labels_have_glyphs() {
-        let telugu: Vec<String> = pdfcraft_fonts::ui_telugu_fonts().iter().map(|f| f.name()).collect();
+        let telugu: Vec<String> = insurcraft_fonts::ui_telugu_fonts().iter().map(|f| f.name()).collect();
         if telugu.is_empty() {
             eprintln!("skipping Telugu glyph checks: build with CRAFT_FONTS_DIR and a Telugu face to run them");
             return;
@@ -1137,7 +1137,7 @@ mod tests {
         let labels: String = entries.iter().flat_map(|e| e.translation.chars()).chain(te.name().chars()).filter(|c| !c.is_control()).collect();
         let mut telugu_only = crate::theme::font_definitions();
         for family in telugu_only.families.values_mut() {
-            family.retain(|name| !pdfcraft_fonts::CRAFT_FONTS.iter().any(|face| face.name() == *name) || telugu.contains(name));
+            family.retain(|name| !insurcraft_fonts::CRAFT_FONTS.iter().any(|face| face.name() == *name) || telugu.contains(name));
         }
         use egui::epaint::text::{Fonts, TextOptions};
         for (build, defs) in [("all faces", crate::theme::font_definitions()), ("Telugu face only", telugu_only)] {
@@ -1157,7 +1157,7 @@ mod tests {
         assert_eq!(tr(cs, "File"), "Soubor");
         assert_eq!(tr(cs, "Žluťoučký kůň.pdf"), "Žluťoučký kůň.pdf");
         assert_eq!((0..=6).map(|n| (cs.0.plural)(n)).collect::<Vec<_>>(), [2, 0, 1, 1, 1, 2, 2]);
-        for spec in pdfcraft_engine::commands::COMMANDS {
+        for spec in insurcraft_engine::commands::COMMANDS {
             let Some(menu) = spec.menu else { continue };
             assert!(has(cs, menu), "Czech lacks the menu title {menu:?}");
             assert!(has(cs, spec.label), "Czech lacks the {menu} menu label {:?} ({})", spec.label, spec.id);
@@ -1169,11 +1169,11 @@ mod tests {
             assert!(!e.translation.contains("..."), "use … rather than three dots: {:?}", e.translation);
             assert_eq!(e.translation.trim(), e.translation, "stray whitespace: {:?}", e.translation);
         }
-        let mut app = crate::PdfCraftApp::default();
+        let mut app = crate::InsurCraftApp::default();
         app.set_option("language", "cs").unwrap();
         assert!(app.set_option("language", "cz").is_err());
         assert_eq!(app.language, "cs");
-        let mut restored = crate::PdfCraftApp::default();
+        let mut restored = crate::InsurCraftApp::default();
         restored.restore(&app.persist());
         assert_eq!(restored.language, "cs");
     }
@@ -1195,13 +1195,13 @@ mod tests {
     #[test]
     fn simplified_chinese_covers_commands_and_catalogue() {
         let zh = Lang::from_code("zh-hans").expect("zh-hans registered");
-        for command in pdfcraft_engine::commands::COMMANDS {
+        for command in insurcraft_engine::commands::COMMANDS {
             assert!(has(zh, command.label), "missing command: {}", command.label);
             if let Some(menu) = command.menu {
                 assert!(has(zh, menu), "missing menu: {menu}");
             }
         }
-        for group in pdfcraft_engine::catalog::TOOL_GROUPS {
+        for group in insurcraft_engine::catalog::TOOL_GROUPS {
             assert!(has(zh, group.label), "missing group: {}", group.label);
             for section in group.sections {
                 assert!(has(zh, section.title), "missing section: {}", section.title);
@@ -1325,7 +1325,7 @@ mod tests {
         assert_eq!(normalize_pref("zh-Hant"), Some("zh-hant"));
         assert_eq!(tr(zh, "File"), "檔案");
         assert_eq!(tr(zh, "報告.pdf"), "報告.pdf");
-        for command in pdfcraft_engine::commands::COMMANDS {
+        for command in insurcraft_engine::commands::COMMANDS {
             assert!(has(zh, command.label), "missing command: {}", command.label);
         }
     }
@@ -1349,10 +1349,10 @@ mod tests {
         assert_eq!(trn(fr, 2, "{n} page", "{n} pages"), "2 pages");
         assert_eq!(trn(fr, 1, "{n} field", "{n} fields"), "1 champ");
         assert_eq!(trn(fr, 2, "{n} field", "{n} fields"), "2 champs");
-        let mut app = crate::PdfCraftApp::default();
+        let mut app = crate::InsurCraftApp::default();
         app.set_option("language", "fr").unwrap();
         assert_eq!(app.language, "fr");
-        let mut restored = crate::PdfCraftApp::default();
+        let mut restored = crate::InsurCraftApp::default();
         restored.restore(&app.persist());
         assert_eq!(restored.language, "fr");
     }
@@ -1361,13 +1361,13 @@ mod tests {
     #[test]
     fn french_covers_commands_and_catalogue() {
         let fr = Lang::from_code("fr").expect("fr registered");
-        for command in pdfcraft_engine::commands::COMMANDS {
+        for command in insurcraft_engine::commands::COMMANDS {
             assert!(has(fr, command.label), "missing command: {}", command.label);
             if let Some(menu) = command.menu {
                 assert!(has(fr, menu), "missing menu: {menu}");
             }
         }
-        for group in pdfcraft_engine::catalog::TOOL_GROUPS {
+        for group in insurcraft_engine::catalog::TOOL_GROUPS {
             assert!(has(fr, group.label), "missing group: {}", group.label);
             for section in group.sections {
                 assert!(has(fr, section.title), "missing section: {}", section.title);
@@ -1455,10 +1455,10 @@ mod tests {
         assert_eq!(trn(de, 2, "{n} page", "{n} pages"), "2 Seiten");
         assert_eq!(trn(de, 1, "{n} field", "{n} fields"), "1 Feld");
         assert_eq!(trn(de, 2, "{n} field", "{n} fields"), "2 Felder");
-        let mut app = crate::PdfCraftApp::default();
+        let mut app = crate::InsurCraftApp::default();
         app.set_option("language", "de").unwrap();
         assert_eq!(app.language, "de");
-        let mut restored = crate::PdfCraftApp::default();
+        let mut restored = crate::InsurCraftApp::default();
         restored.restore(&app.persist());
         assert_eq!(restored.language, "de");
     }
@@ -1467,13 +1467,13 @@ mod tests {
     #[test]
     fn german_covers_commands_and_catalogue() {
         let de = Lang::from_code("de").expect("de registered");
-        for command in pdfcraft_engine::commands::COMMANDS {
+        for command in insurcraft_engine::commands::COMMANDS {
             assert!(has(de, command.label), "missing command: {}", command.label);
             if let Some(menu) = command.menu {
                 assert!(has(de, menu), "missing menu: {menu}");
             }
         }
-        for group in pdfcraft_engine::catalog::TOOL_GROUPS {
+        for group in insurcraft_engine::catalog::TOOL_GROUPS {
             assert!(has(de, group.label), "missing group: {}", group.label);
             for section in group.sections {
                 assert!(has(de, section.title), "missing section: {}", section.title);
@@ -1587,10 +1587,10 @@ mod tests {
         assert_eq!(trn(ru, 1, "{n} field", "{n} fields"), "1 поле");
         assert_eq!(trn(ru, 2, "{n} field", "{n} fields"), "2 поля");
         assert_eq!(trn(ru, 5, "{n} field", "{n} fields"), "5 полей");
-        let mut app = crate::PdfCraftApp::default();
+        let mut app = crate::InsurCraftApp::default();
         app.set_option("language", "ru").unwrap();
         assert_eq!(app.language, "ru");
-        let mut restored = crate::PdfCraftApp::default();
+        let mut restored = crate::InsurCraftApp::default();
         restored.restore(&app.persist());
         assert_eq!(restored.language, "ru");
     }
@@ -1599,13 +1599,13 @@ mod tests {
     #[test]
     fn russian_covers_commands_and_catalogue() {
         let ru = Lang::from_code("ru").expect("ru registered");
-        for command in pdfcraft_engine::commands::COMMANDS {
+        for command in insurcraft_engine::commands::COMMANDS {
             assert!(has(ru, command.label), "missing command: {}", command.label);
             if let Some(menu) = command.menu {
                 assert!(has(ru, menu), "missing menu: {menu}");
             }
         }
-        for group in pdfcraft_engine::catalog::TOOL_GROUPS {
+        for group in insurcraft_engine::catalog::TOOL_GROUPS {
             assert!(has(ru, group.label), "missing group: {}", group.label);
             for section in group.sections {
                 assert!(has(ru, section.title), "missing section: {}", section.title);
@@ -1694,10 +1694,10 @@ mod tests {
         assert_eq!(trn(bg, 21, "{n} page", "{n} pages"), "21 страници");
         assert_eq!(trn(bg, 1, "{n} field", "{n} fields"), "1 поле");
         assert_eq!(trn(bg, 5, "{n} field", "{n} fields"), "5 полета");
-        let mut app = crate::PdfCraftApp::default();
+        let mut app = crate::InsurCraftApp::default();
         app.set_option("language", "bg").unwrap();
         assert_eq!(app.language, "bg");
-        let mut restored = crate::PdfCraftApp::default();
+        let mut restored = crate::InsurCraftApp::default();
         restored.restore(&app.persist());
         assert_eq!(restored.language, "bg");
     }
@@ -1706,13 +1706,13 @@ mod tests {
     #[test]
     fn bulgarian_covers_commands_and_catalogue() {
         let bg = Lang::from_code("bg").expect("bg registered");
-        for command in pdfcraft_engine::commands::COMMANDS {
+        for command in insurcraft_engine::commands::COMMANDS {
             assert!(has(bg, command.label), "missing command: {}", command.label);
             if let Some(menu) = command.menu {
                 assert!(has(bg, menu), "missing menu: {menu}");
             }
         }
-        for group in pdfcraft_engine::catalog::TOOL_GROUPS {
+        for group in insurcraft_engine::catalog::TOOL_GROUPS {
             assert!(has(bg, group.label), "missing group: {}", group.label);
             for section in group.sections {
                 assert!(has(bg, section.title), "missing section: {}", section.title);
@@ -1802,10 +1802,10 @@ mod tests {
         assert_eq!(trn(hu, 2, "{n} page", "{n} pages"), "2 oldal");
         assert_eq!(trn(hu, 1, "{n} field", "{n} fields"), "1 mező");
         assert_eq!(trn(hu, 5, "{n} field", "{n} fields"), "5 mező");
-        let mut app = crate::PdfCraftApp::default();
+        let mut app = crate::InsurCraftApp::default();
         app.set_option("language", "hu").unwrap();
         assert_eq!(app.language, "hu");
-        let mut restored = crate::PdfCraftApp::default();
+        let mut restored = crate::InsurCraftApp::default();
         restored.restore(&app.persist());
         assert_eq!(restored.language, "hu");
     }
@@ -1814,13 +1814,13 @@ mod tests {
     #[test]
     fn hungarian_covers_commands_and_catalogue() {
         let hu = Lang::from_code("hu").expect("hu registered");
-        for command in pdfcraft_engine::commands::COMMANDS {
+        for command in insurcraft_engine::commands::COMMANDS {
             assert!(has(hu, command.label), "missing command: {}", command.label);
             if let Some(menu) = command.menu {
                 assert!(has(hu, menu), "missing menu: {menu}");
             }
         }
-        for group in pdfcraft_engine::catalog::TOOL_GROUPS {
+        for group in insurcraft_engine::catalog::TOOL_GROUPS {
             assert!(has(hu, group.label), "missing group: {}", group.label);
             for section in group.sections {
                 assert!(has(hu, section.title), "missing section: {}", section.title);
@@ -1911,10 +1911,10 @@ mod tests {
         assert_eq!(tr_ctx(uk, "action wizard", "Start"), "Почати");
         assert_eq!(tr(uk, "Subject"), "Тема");
         assert_eq!(tr_ctx(uk, "certificate", "Subject"), "Власник сертифіката");
-        let mut app = crate::PdfCraftApp::default();
+        let mut app = crate::InsurCraftApp::default();
         app.set_option("language", "UK").unwrap();
         assert_eq!(app.language, "uk");
-        let mut restored = crate::PdfCraftApp::default();
+        let mut restored = crate::InsurCraftApp::default();
         restored.restore(&app.persist());
         assert_eq!(restored.language, "uk");
         assert!(restored.set_option("language", "xx").is_err());
@@ -1998,13 +1998,13 @@ mod tests {
     #[test]
     fn ukrainian_covers_commands_and_catalogue() {
         let uk = Lang::from_code("uk").expect("uk registered");
-        for command in pdfcraft_engine::commands::COMMANDS {
+        for command in insurcraft_engine::commands::COMMANDS {
             assert!(has(uk, command.label), "missing command: {}", command.label);
             if let Some(menu) = command.menu {
                 assert!(has(uk, menu), "missing menu: {menu}");
             }
         }
-        for group in pdfcraft_engine::catalog::TOOL_GROUPS {
+        for group in insurcraft_engine::catalog::TOOL_GROUPS {
             assert!(has(uk, group.label), "missing group: {}", group.label);
             for section in group.sections {
                 assert!(has(uk, section.title), "missing section: {}", section.title);
@@ -2120,10 +2120,10 @@ mod tests {
         assert_eq!(tr_ctx(ar, "certificate", "Subject"), "الشهادة صاحب");
         // Unknown strings and user text are never reordered by a lookup.
         assert_eq!(tr(ar, "تقرير نهائي {n}.pdf"), "تقرير نهائي {n}.pdf");
-        let mut app = crate::PdfCraftApp::default();
+        let mut app = crate::InsurCraftApp::default();
         app.set_option("language", "AR").unwrap();
         assert_eq!(app.language, "ar");
-        let mut restored = crate::PdfCraftApp::default();
+        let mut restored = crate::InsurCraftApp::default();
         restored.restore(&app.persist());
         assert_eq!(restored.language, "ar");
         assert!(restored.set_option("language", "xx").is_err());
@@ -2138,7 +2138,7 @@ mod tests {
         // "حفظ باسم…" as typed; the ellipsis ends the phrase on the left.
         assert_eq!(tr(ar, "Save as…"), "…باسم حفظ");
         // Latin names keep their own direction inside the phrase.
-        assert_eq!(tr(ar, "About PdfCraft"), "PdfCraft حول");
+        assert_eq!(tr(ar, "About InsurCraft"), "InsurCraft حول");
         // A caption's colon stays beside the widget on its right.
         assert_eq!(tr(ar, "Name:"), "الاسم:");
         assert_eq!(tr(ar, "Issued by: "), "عن صادرة: ");
@@ -2172,13 +2172,13 @@ mod tests {
     #[test]
     fn arabic_covers_commands_and_catalogue() {
         let ar = arabic();
-        for command in pdfcraft_engine::commands::COMMANDS {
+        for command in insurcraft_engine::commands::COMMANDS {
             assert!(has(ar, command.label), "missing command: {}", command.label);
             if let Some(menu) = command.menu {
                 assert!(has(ar, menu), "missing menu: {menu}");
             }
         }
-        for group in pdfcraft_engine::catalog::TOOL_GROUPS {
+        for group in insurcraft_engine::catalog::TOOL_GROUPS {
             assert!(has(ar, group.label), "missing group: {}", group.label);
             for section in group.sections {
                 assert!(has(ar, section.title), "missing section: {}", section.title);
@@ -2203,7 +2203,7 @@ mod tests {
     /// it; Arabic labels must not need a Japanese face).
     #[test]
     fn arabic_labels_have_glyphs() {
-        let faces: Vec<String> = pdfcraft_fonts::ui_arabic_fonts().iter().map(|f| f.name()).collect();
+        let faces: Vec<String> = insurcraft_fonts::ui_arabic_fonts().iter().map(|f| f.name()).collect();
         if faces.is_empty() {
             eprintln!("skipping Arabic glyph checks: build with CRAFT_FONTS_DIR and an Arabic face to run them");
             return;
@@ -2213,7 +2213,7 @@ mod tests {
         let labels: String = entries.iter().flat_map(|e| e.translation.chars()).chain(ar.name().chars()).filter(|c| !c.is_control()).collect();
         let mut arabic_only = crate::theme::font_definitions();
         for family in arabic_only.families.values_mut() {
-            family.retain(|name| !pdfcraft_fonts::CRAFT_FONTS.iter().any(|face| face.name() == *name) || faces.contains(name));
+            family.retain(|name| !insurcraft_fonts::CRAFT_FONTS.iter().any(|face| face.name() == *name) || faces.contains(name));
         }
         use egui::epaint::text::{Fonts, TextOptions};
         for (build, defs) in [("all faces", crate::theme::font_definitions()), ("Arabic face only", arabic_only)] {
@@ -2235,7 +2235,7 @@ mod tests {
             let (entries, errors) = parse_entries(l.source, l.plural_forms());
             assert!(errors.is_empty(), "{}: {errors:?}", l.code);
             for e in entries.iter().filter(|e| e.context == "@id") {
-                let command = pdfcraft_engine::commands::command(&e.source);
+                let command = insurcraft_engine::commands::command(&e.source);
                 let Some(command) = command else { panic!("{}: unknown command id {:?}", l.code, e.source) };
                 assert_eq!(placeholders(&e.translation), placeholders(command.label), "{}: {}", l.code, e.source);
                 assert_eq!(e.translation.ends_with('…'), command.label.ends_with('…'), "{}: ellipsis mismatch: {}", l.code, e.source);
@@ -2247,7 +2247,7 @@ mod tests {
     #[test]
     fn date_languages_are_the_interface_languages() {
         let interface: Vec<(&str, &str)> = Lang::all().map(|l| (l.code(), l.name())).collect();
-        let dates: Vec<(&str, &str)> = pdfcraft_engine::dates::DATE_LANGUAGES.iter().map(|l| (l.code, l.name)).collect();
+        let dates: Vec<(&str, &str)> = insurcraft_engine::dates::DATE_LANGUAGES.iter().map(|l| (l.code, l.name)).collect();
         assert_eq!(dates, interface);
     }
 }

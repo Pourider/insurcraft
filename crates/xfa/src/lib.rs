@@ -1,9 +1,9 @@
-//! pdfcraft-xfa — XFA forms (L3). See the README.
+//! insurcraft-xfa — XFA forms (L3). See the README.
 //!
 //! A dynamic XFA form is a PDF shell around an XML template; viewers without an XFA engine
 //! show its one placeholder page ("requires Adobe Reader"). This crate reads the template,
 //! lays it out and writes ordinary pages and AcroForm fields into the document, so the rest
-//! of PdfCraft (rendering, filling, saving, printing, tools) works on it unchanged.
+//! of InsurCraft (rendering, filling, saving, printing, tools) works on it unchanged.
 
 #![deny(clippy::unwrap_used, clippy::expect_used, clippy::panic, clippy::unimplemented, clippy::todo, clippy::unreachable)]
 
@@ -18,7 +18,7 @@ pub mod pdf;
 pub mod script;
 pub mod text;
 
-use pdfcraft_cos::Document;
+use insurcraft_cos::Document;
 
 pub use data::{
     DataNode, DataOp, DataPath, DatasetsWrite, FieldData, FieldDatum, add_data_instances, build_data, iso_to_pattern, parse_datasets, pattern_to_iso,
@@ -42,7 +42,7 @@ pub enum XfaError {
     #[error("{0}")]
     TooLarge(String),
     #[error("{0}")]
-    Cos(#[from] pdfcraft_cos::CosError),
+    Cos(#[from] insurcraft_cos::CosError),
 }
 
 /// What laying out a form produced.
@@ -56,7 +56,7 @@ pub struct Report {
     pub warnings: Vec<String>,
 }
 
-/// Is this a dynamic XFA form still showing its placeholder pages (one PdfCraft has not laid
+/// Is this a dynamic XFA form still showing its placeholder pages (one InsurCraft has not laid
 /// out yet)?
 pub fn is_dynamic(doc: &Document) -> bool {
     existing_layout(doc).is_none() && matches!(read_packets(doc), Ok(Some(p)) if p.needs_rendering || !p.has_fields)

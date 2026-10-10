@@ -1,6 +1,6 @@
 //! Redaction (architecture §11.2, execution plan M8.5–M8.7). Layer L4.
 //!
-//! Content is marked for redaction with Redact annotations (§12.5.6.23); `pdfcraft-annot`
+//! Content is marked for redaction with Redact annotations (§12.5.6.23); `insurcraft-annot`
 //! creates them. [`apply`] then removes everything under the marks, for good:
 //! - text glyphs (the rest of each line keeps its position), inline images, and paths that the
 //!   marks cover; images and vectors partly under a mark lose the covered part;
@@ -14,7 +14,7 @@
 
 #![deny(clippy::unwrap_used, clippy::expect_used, clippy::panic, clippy::unimplemented, clippy::todo, clippy::unreachable)]
 
-use pdfcraft_cos::{Dict, Document, ObjRef, Object, Stream};
+use insurcraft_cos::{Dict, Document, ObjRef, Object, Stream};
 
 pub mod codes;
 mod image;
@@ -38,11 +38,11 @@ pub enum RedactError {
     #[error("redaction could not be verified: {0} item(s) were still found under the marks, so nothing was changed")]
     Residue(usize),
     #[error(transparent)]
-    Edit(#[from] pdfcraft_edit::EditError),
+    Edit(#[from] insurcraft_edit::EditError),
     #[error(transparent)]
-    Form(#[from] pdfcraft_forms::FormError),
+    Form(#[from] insurcraft_forms::FormError),
     #[error(transparent)]
-    Cos(#[from] pdfcraft_cos::CosError),
+    Cos(#[from] insurcraft_cos::CosError),
 }
 
 /// A redaction mark on a page.
@@ -57,13 +57,13 @@ pub struct Mark {
     pub fill: Option<Rgb>,
     pub overlay: String,
     /// How the overlay text is drawn (`/DA`, `/Q`, `/Repeat`).
-    pub look: pdfcraft_annot::OverlayLook,
+    pub look: insurcraft_annot::OverlayLook,
 }
 
 /// The overlay look of a Redact annotation: font, size and colour from `/DA`, alignment from
 /// `/Q`, repetition from `/Repeat`.
-fn overlay_look(doc: &Document, d: &Dict) -> pdfcraft_annot::OverlayLook {
-    let mut look = pdfcraft_annot::OverlayLook::default();
+fn overlay_look(doc: &Document, d: &Dict) -> insurcraft_annot::OverlayLook {
+    let mut look = insurcraft_annot::OverlayLook::default();
     if let Some(da) = d.get(b"DA").and_then(|o| doc.resolve(o).as_string().map(|s| String::from_utf8_lossy(&s.bytes).into_owned())) {
         let t: Vec<&str> = da.split_whitespace().collect();
         for (i, w) in t.iter().enumerate() {
@@ -79,7 +79,7 @@ fn overlay_look(doc: &Document, d: &Dict) -> pdfcraft_annot::OverlayLook {
                     }
                 }
                 "Tf" if i >= 2 => {
-                    look.font = pdfcraft_annot::OverlayFont::from_resource(t[i - 2].trim_start_matches('/'));
+                    look.font = insurcraft_annot::OverlayFont::from_resource(t[i - 2].trim_start_matches('/'));
                     look.size = t[i - 1].parse::<f64>().unwrap_or(0.0).max(0.0);
                 }
                 _ => {}
@@ -131,7 +131,7 @@ pub(crate) fn annots_of(doc: &Document, page: &Dict) -> Vec<Object> {
 /// Every redaction mark in the document, page by page.
 pub fn marks(doc: &Document) -> Vec<Mark> {
     let mut out = Vec::new();
-    for (pi, p) in pdfcraft_model::pages(doc).iter().enumerate() {
+    for (pi, p) in insurcraft_model::pages(doc).iter().enumerate() {
         for a in annots_of(doc, &p.dict) {
             let Some(r) = a.as_ref() else { continue };
             let obj = doc.get(r);
@@ -215,10 +215,10 @@ fn overlay_content(marks: &[&Mark]) -> Vec<u8> {
         // set; repeated to fill the area when asked.
         let look = &m.look;
         let (res, width): (&str, fn(&str, f64) -> f64) = match look.font {
-            pdfcraft_annot::OverlayFont::Helvetica => ("PCHelv", pdfcraft_fonts::helvetica_width),
+            insurcraft_annot::OverlayFont::Helvetica => ("PCHelv", insurcraft_fonts::helvetica_width),
             // Approximations of the standard metrics (no font program is bundled).
-            pdfcraft_annot::OverlayFont::Times => ("PCTimes", |s, size| pdfcraft_fonts::helvetica_width(s, size) * 0.9),
-            pdfcraft_annot::OverlayFont::Courier => ("PCCour", |s, size| s.chars().count() as f64 * size * 0.6),
+            insurcraft_annot::OverlayFont::Times => ("PCTimes", |s, size| insurcraft_fonts::helvetica_width(s, size) * 0.9),
+            insurcraft_annot::OverlayFont::Courier => ("PCCour", |s, size| s.chars().count() as f64 * size * 0.6),
         };
         let [cr, cg, cb] = look.color.map(|v| v.clamp(0.0, 1.0));
         for r in &m.rects {
@@ -253,7 +253,7 @@ fn overlay_content(marks: &[&Mark]) -> Vec<u8> {
                     _ => r[0] + (w - lw) / 2.0,
                 };
                 c.extend(format!("1 0 0 1 {} {} Tm ", n(x), n(y)).bytes());
-                c.extend_from_slice(&pdfcraft_fonts::literal(&pdfcraft_fonts::win_ansi(line)));
+                c.extend_from_slice(&insurcraft_fonts::literal(&insurcraft_fonts::win_ansi(line)));
                 c.extend_from_slice(b" Tj ");
                 y -= size * 1.2;
             }
@@ -278,10 +278,10 @@ pub fn apply(doc: &mut Document, pages: Option<&[usize]>) -> Result<Report, Reda
     report.pages = by_page.len();
     let mut doomed_fields: Vec<String> = Vec::new();
     let widget_owner: Vec<(ObjRef, String)> =
-        pdfcraft_forms::fields(doc).into_iter().flat_map(|f| f.widgets.iter().map(|w| (w.obj, f.name.clone())).collect::<Vec<_>>()).collect();
+        insurcraft_forms::fields(doc).into_iter().flat_map(|f| f.widgets.iter().map(|w| (w.obj, f.name.clone())).collect::<Vec<_>>()).collect();
 
     for &pi in &by_page {
-        let page = pdfcraft_model::pages(doc).swap_remove(pi);
+        let page = insurcraft_model::pages(doc).swap_remove(pi);
         let page_marks: Vec<&Mark> = chosen.iter().copied().filter(|m| m.page == pi).collect();
         let rects: Vec<[f64; 4]> = page_marks.iter().flat_map(|m| m.rects.iter().copied()).collect();
 
@@ -290,7 +290,7 @@ pub fn apply(doc: &mut Document, pages: Option<&[usize]>) -> Result<Report, Reda
         let resources = page.dict.get(b"Resources").and_then(|r| doc.resolve(r).as_dict().cloned()).unwrap_or_default();
         let out = {
             let mut scope = Scope::new(&rects, Mode::Apply, &mut report);
-            process(doc, &mut scope, &data, &resources, pdfcraft_content::Matrix::IDENTITY)
+            process(doc, &mut scope, &data, &resources, insurcraft_content::Matrix::IDENTITY)
         };
         let mut new_list = list.clone();
         let mut changed = false;
@@ -346,7 +346,7 @@ pub fn apply(doc: &mut Document, pages: Option<&[usize]>) -> Result<Report, Reda
             if subtype == b"Popup" {
                 continue;
             }
-            if rect_of(doc, d.get(b"Rect")).is_some_and(|b| rects.iter().any(|x| pdfcraft_content::overlaps(*x, b, 0.0))) {
+            if rect_of(doc, d.get(b"Rect")).is_some_and(|b| rects.iter().any(|x| insurcraft_content::overlaps(*x, b, 0.0))) {
                 removed.push(r);
                 if subtype == b"Widget" {
                     if let Some((_, name)) = widget_owner.iter().find(|(w, _)| *w == r)
@@ -382,8 +382,8 @@ pub fn apply(doc: &mut Document, pages: Option<&[usize]>) -> Result<Report, Reda
 
     // 3. Form fields with a widget under a mark (all their widgets go).
     for name in &doomed_fields {
-        if pdfcraft_forms::fields(doc).iter().any(|f| &f.name == name) {
-            pdfcraft_forms::delete_field(doc, name)?;
+        if insurcraft_forms::fields(doc).iter().any(|f| &f.name == name) {
+            insurcraft_forms::delete_field(doc, name)?;
             report.fields += 1;
         }
     }
@@ -393,14 +393,14 @@ pub fn apply(doc: &mut Document, pages: Option<&[usize]>) -> Result<Report, Reda
         let page_marks: Vec<&Mark> = chosen.iter().copied().filter(|m| m.page == pi).collect();
         let content = overlay_content(&page_marks);
         if !content.is_empty() {
-            pdfcraft_edit::stamp(doc, pi, "Redaction", content)?;
+            insurcraft_edit::stamp(doc, pi, "Redaction", content)?;
         }
     }
 
     // 5. Verify: nothing readable may remain under a region.
     let mut residue = 0;
     for &pi in &by_page {
-        let page = pdfcraft_model::pages(doc).swap_remove(pi);
+        let page = insurcraft_model::pages(doc).swap_remove(pi);
         let rects: Vec<[f64; 4]> = chosen.iter().filter(|m| m.page == pi).flat_map(|m| m.rects.iter().copied()).collect();
         let (list, data) = page_streams(doc, &page.dict, pi)?;
         // The overlay stream (last) draws text of its own: the overlay label is allowed.
@@ -413,7 +413,7 @@ pub fn apply(doc: &mut Document, pages: Option<&[usize]>) -> Result<Report, Reda
         let resources = page.dict.get(b"Resources").and_then(|r| doc.resolve(r).as_dict().cloned()).unwrap_or_default();
         let mut scratch = Report::default();
         let mut scope = Scope::new(&rects, Mode::Verify, &mut scratch);
-        residue += process(doc, &mut scope, &original, &resources, pdfcraft_content::Matrix::IDENTITY).residue;
+        residue += process(doc, &mut scope, &original, &resources, insurcraft_content::Matrix::IDENTITY).residue;
     }
     if residue > 0 {
         return Err(RedactError::Residue(residue));
@@ -430,7 +430,7 @@ pub fn clear_marks(doc: &mut Document, pages: Option<&[usize]>) -> Result<usize,
     if doomed.is_empty() {
         return Err(RedactError::NothingToApply);
     }
-    for p in pdfcraft_model::pages(doc) {
+    for p in insurcraft_model::pages(doc) {
         let annots = annots_of(doc, &p.dict);
         let kept: Vec<Object> = annots
             .iter()

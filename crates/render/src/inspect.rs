@@ -13,8 +13,10 @@ use std::panic::{AssertUnwindSafe, catch_unwind};
 use hayro::hayro_syntax::DecryptionError;
 use hayro::hayro_syntax::LoadPdfError;
 use hayro::hayro_syntax::Pdf;
+use insurcraft_cos::page_labels::{
+    MAX_LABEL_BYTES, MAX_LABEL_TOTAL_BYTES, MAX_LABEL_TREE_DEPTH, MAX_LABEL_TREE_WORK, MAX_PREFIX_BYTES, alpha, roman,
+};
 use lopdf::{Dictionary, Document, LoadOptions, Object, ObjectId};
-use pdfcraft_cos::page_labels::{MAX_LABEL_BYTES, MAX_LABEL_TOTAL_BYTES, MAX_LABEL_TREE_DEPTH, MAX_LABEL_TREE_WORK, MAX_PREFIX_BYTES, alpha, roman};
 
 use crate::OpenError;
 use crate::structure::{LazyStructure, Structure};
@@ -838,7 +840,7 @@ impl<'a> Inspector<'a> {
                 }
                 // Not comments: form widgets, pop-ups and non-markup annotations such as the
                 // Screen annotation that drives a LaTeX `animate` player (keep in step with
-                // `pdfcraft_annot::is_comment_subtype`).
+                // `insurcraft_annot::is_comment_subtype`).
                 if matches!(subtype.as_str(), "Widget" | "Popup" | "Screen" | "Movie" | "RichMedia" | "3D" | "PrinterMark" | "TrapNet" | "Watermark")
                 {
                     continue;
@@ -1174,9 +1176,9 @@ impl<'a> Inspector<'a> {
 }
 
 /// A text string's value, decoded by the same rules as the engine's object model
-/// ([`pdfcraft_cos::PdfString::to_text`]) so the panels and outline editing agree.
+/// ([`insurcraft_cos::PdfString::to_text`]) so the panels and outline editing agree.
 fn text_string(bytes: &[u8]) -> String {
-    pdfcraft_cos::PdfString::literal(bytes).to_text()
+    insurcraft_cos::PdfString::literal(bytes).to_text()
 }
 
 fn rect4(o: &Object) -> [f32; 4] {
@@ -1604,8 +1606,8 @@ trailer << /Root 1 0 R >>
     fn lazy_structure_matches_the_compatibility_inspector() {
         // Each fixture as lopdf writes it, and with its objects in object streams.
         let packed = |bytes: &[u8]| {
-            let doc = pdfcraft_cos::Document::open(Arc::new(bytes.to_vec())).unwrap();
-            pdfcraft_cos::write_full(&doc, &pdfcraft_cos::SaveOptions { object_streams: true, ..Default::default() }).unwrap()
+            let doc = insurcraft_cos::Document::open(Arc::new(bytes.to_vec())).unwrap();
+            insurcraft_cos::write_full(&doc, &insurcraft_cos::SaveOptions { object_streams: true, ..Default::default() }).unwrap()
         };
         let fixtures = [ATTACHMENTS, LAYERS, DESTS].into_iter().flat_map(|bytes| {
             let mut original = Document::load_mem(bytes).unwrap();

@@ -1,11 +1,11 @@
 //! Fill & Sign (Acrobat's Fill & Sign tool, execution plan M5.7): type text onto the page, place
 //! ✓ ✕ ● ─ marks and today's date (in Preferences ▸ Date format), and sign with a drawn
-//! signature. Everything is an annotation (typewriter text, PdfCraft-drawn stamps, ink), so it
+//! signature. Everything is an annotation (typewriter text, InsurCraft-drawn stamps, ink), so it
 //! can be moved, deleted and undone like any comment.
 
 use egui::{Color32, CornerRadius, Pos2, Sense, Stroke, pos2, vec2};
-use pdfcraft_engine::{Edit, FillMark, NewAnnotation, Shape, SignatureImage, Style};
-use pdfcraft_render::{DocInfo, PageInfo};
+use insurcraft_engine::{Edit, FillMark, NewAnnotation, Shape, SignatureImage, Style};
+use insurcraft_render::{DocInfo, PageInfo};
 
 use crate::canvas::{DocView, PageXform};
 use crate::theme::Tokens;
@@ -36,7 +36,7 @@ pub enum SavedSig {
 
 mod image_data {
     use base64::Engine as _;
-    use pdfcraft_engine::{SignatureImage, signature_image::MAX_SIGNATURE_IMAGE_BYTES};
+    use insurcraft_engine::{SignatureImage, signature_image::MAX_SIGNATURE_IMAGE_BYTES};
     use serde::{Deserialize, Deserializer, Serializer};
 
     pub fn serialize<S: Serializer>(image: &SignatureImage, s: S) -> Result<S::Ok, S::Error> {
@@ -91,7 +91,7 @@ impl SigDraft {
             self.strokes.iter().any(|s| s.len() > 1)
         } else {
             !self.text.trim().is_empty()
-                && self.text.chars().take(pdfcraft_engine::MAX_SIGNATURE_CHARS + 1).count() <= pdfcraft_engine::MAX_SIGNATURE_CHARS
+                && self.text.chars().take(insurcraft_engine::MAX_SIGNATURE_CHARS + 1).count() <= insurcraft_engine::MAX_SIGNATURE_CHARS
         }
     }
 
@@ -200,7 +200,7 @@ pub fn signature_at(page: usize, at: [f64; 2], strokes: &[Vec<[f32; 2]>], rotati
     }
     let h = f64::from(max_y - min_y).max(0.05) * w;
     // Displayed right and up as user-space unit vectors (the identity on an unturned page).
-    let [a, b, c, d, ..] = pdfcraft_model::view_matrix_for(rotation, [0.0; 4]);
+    let [a, b, c, d, ..] = insurcraft_model::view_matrix_for(rotation, [0.0; 4]);
     let strokes: Vec<Vec<[f64; 2]>> = strokes
         .iter()
         .filter(|s| !s.is_empty())
@@ -219,7 +219,7 @@ pub fn signature_at(page: usize, at: [f64; 2], strokes: &[Vec<[f32; 2]>], rotati
 /// Place typed text in the script font with its left edge at `at`, `height` points tall, upright
 /// as displayed on a page turned by `rotation`.
 pub fn typed_signature_at(page: usize, at: [f64; 2], text: &str, height: f64, rotation: i64, author: &str) -> Option<Edit> {
-    pdfcraft_engine::typed_signature_shape(at, text, height, rotation).map(|shape| new(page, shape, String::new(), author))
+    insurcraft_engine::typed_signature_shape(at, text, height, rotation).map(|shape| new(page, shape, String::new(), author))
 }
 
 /// Place a saved signature or initials, upright as `info`'s page is displayed.
@@ -229,7 +229,7 @@ pub fn place(page: usize, info: &PageInfo, at: [f64; 2], sig: &SavedSig, initial
         SavedSig::Drawn(strokes) => signature_at(page, at, strokes, rotation, author),
         SavedSig::Image(image) => image.edit(page, info, at, initials, author),
         SavedSig::Typed(text) => {
-            let [left, bottom, right, top] = pdfcraft_engine::script_outline(text).bounds();
+            let [left, bottom, right, top] = insurcraft_engine::script_outline(text).bounds();
             let height = if initials { 24.0_f64 } else { 32.0_f64 };
             // Keep long names within the same placement width as drawn signatures.
             let height = height.min(150.0 * (top - bottom).max(0.1) / (right - left).max(0.01));
@@ -240,7 +240,7 @@ pub fn place(page: usize, info: &PageInfo, at: [f64; 2], sig: &SavedSig, initial
 
 /// The text in the script font as a picture (`w`×`h` px, black on transparent), for previews.
 pub(crate) fn script_preview(text: &str, w: usize, h: usize) -> egui::ColorImage {
-    let o = pdfcraft_engine::script_outline(text);
+    let o = insurcraft_engine::script_outline(text);
     let mut img = egui::ColorImage::filled([w, h], Color32::TRANSPARENT);
     let [left, bottom, right, top] = o.bounds();
     let span = (top - bottom).max(0.1);
@@ -279,7 +279,7 @@ pub(crate) fn script_preview(text: &str, w: usize, h: usize) -> egui::ColorImage
 }
 
 /// Saved previews and add/remove controls, shared by the left panel and quick-tool picker.
-pub(crate) fn signature_entries(ui: &mut egui::Ui, app: &mut crate::PdfCraftApp, t: &Tokens) -> Option<&'static str> {
+pub(crate) fn signature_entries(ui: &mut egui::Ui, app: &mut crate::InsurCraftApp, t: &Tokens) -> Option<&'static str> {
     ui.set_width(ui.available_width().clamp(240.0, 248.0));
     let mut command = None;
     for (i, (saved, what, use_id, change_id, remove_id)) in [
@@ -527,10 +527,13 @@ pub(crate) fn signature_pad(
     if !d.drawing {
         let l = ui.label(egui::RichText::new(crate::i18n::fmt(tl!("Type your {what}."), &[("what", what)])).color(t.text_muted));
         ui.add(
-            egui::TextEdit::singleline(&mut d.text)
-                .char_limit(pdfcraft_engine::MAX_SIGNATURE_CHARS)
-                .desired_width(460.0)
-                .hint_text(tl!(if d.initials { "Initials" } else { "Your name" })),
+            egui::TextEdit::singleline(&mut d.text).char_limit(insurcraft_engine::MAX_SIGNATURE_CHARS).desired_width(460.0).hint_text(tl!(if d
+                .initials
+            {
+                "Initials"
+            } else {
+                "Your name"
+            })),
         )
         .labelled_by(l.id);
         let (rect, _) = ui.allocate_exact_size(vec2(460.0, 150.0), Sense::hover());
@@ -637,7 +640,7 @@ struct PickedImage {
     bytes: Option<Result<Vec<u8>, String>>,
 }
 
-impl crate::PdfCraftApp {
+impl crate::InsurCraftApp {
     /// Browse asynchronously, answering only into the dialog that asked for the image.
     pub(crate) fn pick_signature_image(&mut self) {
         let epoch = self.dialog_epoch();
@@ -649,7 +652,7 @@ impl crate::PdfCraftApp {
                 return;
             }
             let result =
-                std::fs::File::open(path).map_err(pdfcraft_engine::signature_image::SignatureImageError::from).and_then(SignatureImage::read);
+                std::fs::File::open(path).map_err(insurcraft_engine::signature_image::SignatureImageError::from).and_then(SignatureImage::read);
             app.use_signature_image(result.map_err(|e| e.to_string()));
         });
         #[cfg(target_arch = "wasm32")]
@@ -663,16 +666,16 @@ impl crate::PdfCraftApp {
             let ctx = self.ctx.clone();
             wasm_bindgen_futures::spawn_local(async move {
                 let bytes = if let Some(file) = dialog.pick_file().await {
-                    if file.inner().size() > pdfcraft_engine::signature_image::MAX_SIGNATURE_IMAGE_BYTES as f64 {
-                        Some(Err(pdfcraft_engine::signature_image::SignatureImageError::Size.to_string()))
+                    if file.inner().size() > insurcraft_engine::signature_image::MAX_SIGNATURE_IMAGE_BYTES as f64 {
+                        Some(Err(insurcraft_engine::signature_image::SignatureImageError::Size.to_string()))
                     } else {
                         // `pick_file` returns a readable handle. Read its Blob directly so a
                         // rejected browser read is an error (rfd's read helper unwraps it).
                         Some(match wasm_bindgen_futures::JsFuture::from(file.inner().array_buffer()).await {
                             Ok(buffer) => {
                                 let bytes = js_sys::Uint8Array::new(&buffer);
-                                if bytes.length() as usize > pdfcraft_engine::signature_image::MAX_SIGNATURE_IMAGE_BYTES {
-                                    Err(pdfcraft_engine::signature_image::SignatureImageError::Size.to_string())
+                                if bytes.length() as usize > insurcraft_engine::signature_image::MAX_SIGNATURE_IMAGE_BYTES {
+                                    Err(insurcraft_engine::signature_image::SignatureImageError::Size.to_string())
                                 } else {
                                     Ok(bytes.to_vec())
                                 }
@@ -701,7 +704,7 @@ impl crate::PdfCraftApp {
         }
         let Some(bytes) = picked.bytes else { return };
         let result = bytes
-            .and_then(|bytes| pdfcraft_engine::guard(|| SignatureImage::from_bytes(&bytes)).map_err(|e| e.to_string())?.map_err(|e| e.to_string()));
+            .and_then(|bytes| insurcraft_engine::guard(|| SignatureImage::from_bytes(&bytes)).map_err(|e| e.to_string())?.map_err(|e| e.to_string()));
         self.use_signature_image(result);
     }
 

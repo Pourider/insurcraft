@@ -3,13 +3,13 @@
 use egui::{Align, Layout};
 
 use crate::theme::{self, Tokens};
-use pdfcraft_engine::Edit;
+use insurcraft_engine::Edit;
 
-use crate::{CloseRequest, Dialog, PdfCraftApp, PropsTab, panels::human_size, widgets};
+use crate::{CloseRequest, Dialog, InsurCraftApp, PropsTab, panels::human_size, widgets};
 
 const INFO_KEYS: [&str; 4] = ["Title", "Author", "Subject", "Keywords"];
 
-pub fn show(app: &mut PdfCraftApp, ctx: &egui::Context) {
+pub fn show(app: &mut InsurCraftApp, ctx: &egui::Context) {
     password(app, ctx);
     save_prompt(app, ctx);
     link_prompt(app, ctx);
@@ -141,7 +141,7 @@ pub fn show(app: &mut PdfCraftApp, ctx: &egui::Context) {
                             row(ui, "PDF producer", i.producer.clone().unwrap_or_default());
                         }
                         PropsTab::InitialView => {
-                            use pdfcraft_engine::{InitialLayout as L, Magnification as M, Navigation as N};
+                            use insurcraft_engine::{InitialLayout as L, Magnification as M, Navigation as N};
                             let editable = doc.allows_modification();
                             let pages = i.pages.len();
                             let Some((_, v)) = app.view_draft.as_mut() else { return };
@@ -429,15 +429,15 @@ pub fn show(app: &mut PdfCraftApp, ctx: &egui::Context) {
                     ui.radio_value(&mut draft.mode, M::Selection, tl!("Before each selected page (select pages in Organize)"))
                 });
                 let plan = match draft.mode {
-                    M::Pages => crate::SplitPlan::By(pdfcraft_engine::SplitBy::PageCount(draft.every)),
-                    M::Selection => crate::SplitPlan::By(pdfcraft_engine::SplitBy::Before(selected)),
+                    M::Pages => crate::SplitPlan::By(insurcraft_engine::SplitBy::PageCount(draft.every)),
+                    M::Selection => crate::SplitPlan::By(insurcraft_engine::SplitBy::Before(selected)),
                     M::Size => crate::SplitPlan::Size((draft.size_mb * 1_048_576.0) as usize),
                     M::Bookmarks => crate::SplitPlan::Bookmarks,
                 };
                 let files = match &plan {
-                    crate::SplitPlan::By(by) => Some(pdfcraft_engine::split_ranges(n, by).len()),
+                    crate::SplitPlan::By(by) => Some(insurcraft_engine::split_ranges(n, by).len()),
                     crate::SplitPlan::Bookmarks => {
-                        Some(pdfcraft_engine::split_ranges(n, &pdfcraft_engine::SplitBy::Before(marks.iter().map(|m| m.0).collect())).len())
+                        Some(insurcraft_engine::split_ranges(n, &insurcraft_engine::SplitBy::Before(marks.iter().map(|m| m.0).collect())).len())
                     }
                     crate::SplitPlan::Size(_) => None,
                 };
@@ -584,7 +584,7 @@ pub fn show(app: &mut PdfCraftApp, ctx: &egui::Context) {
                 return;
             }
             Dialog::RotatePages => {
-                use pdfcraft_engine::{PageOrientation as O, PageParity as P};
+                use insurcraft_engine::{PageOrientation as O, PageParity as P};
                 let n = app.active_ids().and_then(|(_, id)| app.session.get(id)).map_or(1, |d| d.info.pages.len());
                 let d = &mut app.rotate_draft;
                 ui.label(egui::RichText::new(tl!("Rotate Pages")).font(theme::semibold(18.0)));
@@ -738,7 +738,7 @@ pub fn show(app: &mut PdfCraftApp, ctx: &egui::Context) {
                 ui.horizontal(|ui| {
                     ui.label(tl!("Sort comments by:"));
                     egui::ComboBox::from_id_salt("summary-sort").selected_text(tl!(app.summary_sort.name())).show_ui(ui, |ui| {
-                        for s in pdfcraft_engine::SummarySort::ALL {
+                        for s in insurcraft_engine::SummarySort::ALL {
                             ui.selectable_value(&mut app.summary_sort, s, tl!(s.name()));
                         }
                     });
@@ -941,7 +941,7 @@ pub fn show(app: &mut PdfCraftApp, ctx: &egui::Context) {
                 return;
             }
             Dialog::NumberPages => {
-                use pdfcraft_engine::LabelStyle as L;
+                use insurcraft_engine::LabelStyle as L;
                 ui.label(egui::RichText::new(tl!("Number pages")).font(theme::semibold(18.0)));
                 ui.add_space(8.0);
                 let Some((_, id)) = app.active_ids() else { return };
@@ -1011,7 +1011,7 @@ pub fn show(app: &mut PdfCraftApp, ctx: &egui::Context) {
                     ui.label(egui::RichText::new(tl!("Recover unsaved documents?")).font(theme::semibold(18.0)));
                 });
                 ui.add_space(6.0);
-                ui.label(tl!("PdfCraft didn't shut down normally. These documents had changes that were autosaved:"));
+                ui.label(tl!("InsurCraft didn't shut down normally. These documents had changes that were autosaved:"));
                 ui.add_space(8.0);
                 let now = std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).map(|d| d.as_secs()).unwrap_or(0);
                 egui::Grid::new("recoverable").num_columns(2).spacing([18.0, 6.0]).show(ui, |ui| {
@@ -1039,17 +1039,17 @@ pub fn show(app: &mut PdfCraftApp, ctx: &egui::Context) {
                 let mac = crate::commands::mac_shortcuts(ui.ctx());
                 // Registered commands first (always in sync with the real bindings), then the
                 // keys the document view handles itself.
-                let mut rows: Vec<(String, String)> = pdfcraft_engine::commands::COMMANDS
+                let mut rows: Vec<(String, String)> = insurcraft_engine::commands::COMMANDS
                     .iter()
                     .filter_map(|c| c.shortcut.map(|k| (k.label(mac), tl!(c.label).trim_end_matches('…').to_string())))
                     .collect();
-                let key = |s: pdfcraft_engine::commands::Shortcut| s.label(mac);
+                let key = |s: insurcraft_engine::commands::Shortcut| s.label(mac);
                 let pair = |a, b| format!("{} / {}", key(a), key(b));
                 // Key names, translated where a catalog has them (not scanned as UI literals).
                 let named = |k: &str| tl!(k).to_string();
                 let scroll = crate::i18n::fmt(
                     tl!("Zoom in / out (also pinch or {key}-scroll)"),
-                    &[("key", pdfcraft_engine::commands::Shortcut::command_name(mac))],
+                    &[("key", insurcraft_engine::commands::Shortcut::command_name(mac))],
                 );
                 for (k, v) in [
                     (pair(FIND_NEXT, FIND_PREV), tl!("Next / previous match").to_string()),
@@ -1099,9 +1099,9 @@ pub fn show(app: &mut PdfCraftApp, ctx: &egui::Context) {
                     2 => crate::credits::models_ui(ui),
                     _ => {
                         ui.horizontal(|ui| {
-                            widgets::artcraft_mark(ui, 40.0);
+                            widgets::insurcraft_mark(ui, 40.0);
                             ui.vertical(|ui| {
-                                ui.label(egui::RichText::new("PdfCraft").font(theme::semibold(20.0)));
+                                ui.label(egui::RichText::new("InsurCraft").font(theme::semibold(20.0)));
                                 ui.label(crate::i18n::fmt(tl!("Version {v}"), &[("v", env!("CARGO_PKG_VERSION"))]));
                             });
                         });
@@ -1115,10 +1115,7 @@ pub fn show(app: &mut PdfCraftApp, ctx: &egui::Context) {
                             .small(),
                         );
                         ui.add_space(12.0);
-                        ui.horizontal(|ui| {
-                            ui.label(egui::RichText::new(tl!("Part of")).color(t.text_muted));
-                            widgets::artcraft_logo(ui, 16.0);
-                        });
+                        ui.label(egui::RichText::new(tl!("Based on PdfCraft by the ArtCraft team")).color(t.text_muted));
                         ui.add_space(6.0);
                         if let Some(cmd) = widgets::community_links(ui) {
                             link_command = Some(cmd);
@@ -1226,7 +1223,7 @@ pub fn show(app: &mut PdfCraftApp, ctx: &egui::Context) {
             app.redact_search.found = Some(n);
         }
         Some(Dialog::RemoveHidden) => {
-            let which: Vec<pdfcraft_engine::Hidden> = app.hidden_draft.found.iter().filter(|f| f.2 && f.1 > 0).map(|f| f.0).collect();
+            let which: Vec<insurcraft_engine::Hidden> = app.hidden_draft.found.iter().filter(|f| f.2 && f.1 > 0).map(|f| f.0).collect();
             let n: usize = app.hidden_draft.found.iter().filter(|f| f.2).map(|f| f.1).sum();
             if app.apply_edit(Edit::RemoveHidden { which }) {
                 if n == 1 {
@@ -1343,7 +1340,7 @@ pub fn show(app: &mut PdfCraftApp, ctx: &egui::Context) {
 }
 
 /// Info edits needed to make the document match the Description draft.
-fn draft_changes(app: &PdfCraftApp) -> Option<Vec<Edit>> {
+fn draft_changes(app: &InsurCraftApp) -> Option<Vec<Edit>> {
     let (id, draft) = app.props_draft.as_ref()?;
     let doc = app.session.get(*id)?;
     let mut edits: Vec<Edit> = INFO_KEYS
@@ -1380,7 +1377,7 @@ pub(crate) fn save_prompt_key(ctx: &egui::Context) -> Option<Option<bool>> {
 }
 
 /// "Save changes?" when closing a tab or quitting with unsaved edits.
-fn save_prompt(app: &mut PdfCraftApp, ctx: &egui::Context) {
+fn save_prompt(app: &mut InsurCraftApp, ctx: &egui::Context) {
     let Some(req) = app.close_request else { return };
     let index = match req {
         CloseRequest::Tab(id) => app.views.iter().position(|v| v.id == id),
@@ -1451,7 +1448,7 @@ fn shorten_middle(name: &str, max: usize) -> String {
 /// "Open this web page?" when a document's link, button or script asks to open an address
 /// (#90, #91). Shows where the address really goes and the whole address; Cancel is the default,
 /// and Escape or clicking outside cancels.
-fn link_prompt(app: &mut PdfCraftApp, ctx: &egui::Context) {
+fn link_prompt(app: &mut InsurCraftApp, ctx: &egui::Context) {
     let Some(pending) = app.pending_link.clone() else { return };
     let t = Tokens::get(ctx);
     let email = pending.url.get(..7).is_some_and(|s| s.eq_ignore_ascii_case("mailto:"));
@@ -1474,7 +1471,7 @@ fn link_prompt(app: &mut PdfCraftApp, ctx: &egui::Context) {
         // The host as the browser will connect to it, in punycode when it is international, so a
         // lookalike such as `pаypal.com` (Cyrillic `а`) reads as `xn--pypal-4ve.com`. Its Unicode
         // form isn't repeated here: a whole-script lookalike would read as the real site.
-        if let Some(host) = pdfcraft_engine::links::display_host(&pending.url) {
+        if let Some(host) = insurcraft_engine::links::display_host(&pending.url) {
             ui.label(egui::RichText::new(&host.ascii).font(theme::semibold(14.0)));
             if host.mixed_scripts {
                 let warning = tl!("This web address mixes letters from different alphabets, a common way to imitate another site's name.");
@@ -1518,7 +1515,7 @@ fn yes(b: bool) -> String {
 }
 
 /// Password prompt for encrypted documents (Acrobat: "Password" dialog on open).
-fn password(app: &mut PdfCraftApp, ctx: &egui::Context) {
+fn password(app: &mut InsurCraftApp, ctx: &egui::Context) {
     let Some(prompt) = app.password_prompt.as_mut() else { return };
     let t = Tokens::get(ctx);
     let mut submit = false;
