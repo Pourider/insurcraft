@@ -63,7 +63,7 @@ insurcraft-cli run    --script steps.json [--root DIR]      [{\"tool\": \"doc_op
     "\
 insurcraft-cli ui     --control FILE <method> [key=value …] [--out shot.png]
                                                            drive a running app started with --control FILE
-help and feedback: https://github.com/__OWNER__/insurcraft/issues
+help and feedback: https://github.com/Pourider/insurcraft/issues
 based on PdfCraft by the ArtCraft team: https://github.com/storytold/pdfcraft"
 );
 

@@ -12,7 +12,7 @@ use egui::{Align, Layout};
 use crate::{InsurCraftApp, theme, widgets};
 
 /// Where every InsurCraft release is listed.
-pub const RELEASES_PAGE: &str = "https://github.com/__OWNER__/insurcraft/releases";
+pub const RELEASES_PAGE: &str = "https://github.com/Pourider/insurcraft/releases";
 
 /// The latest published release.
 #[derive(Clone, Debug, PartialEq, Eq)]

@@ -9,7 +9,7 @@ use insurcraft_ui_egui::updates::{Release, UpdateSource, is_newer};
 
 fn source(answer: Result<&str, &str>) -> UpdateSource {
     let answer = answer.map(str::to_string).map_err(str::to_string);
-    Arc::new(move || answer.clone().map(|v| Release { url: format!("https://github.com/__OWNER__/insurcraft/releases/tag/{v}"), version: v }))
+    Arc::new(move || answer.clone().map(|v| Release { url: format!("https://github.com/Pourider/insurcraft/releases/tag/{v}"), version: v }))
 }
 
 fn harness(answer: Result<&str, &str>) -> Harness<'static, InsurCraftApp> {
@@ -85,7 +85,7 @@ fn nothing_is_asked_until_the_user_checks() {
         let counted = counted.clone();
         app.update_source = Some(Arc::new(move || {
             counted.fetch_add(1, std::sync::atomic::Ordering::SeqCst);
-            Ok(Release { version: "v99.0.0".into(), url: "https://github.com/__OWNER__/insurcraft/releases/tag/v99.0.0".into() })
+            Ok(Release { version: "v99.0.0".into(), url: "https://github.com/Pourider/insurcraft/releases/tag/v99.0.0".into() })
         }));
         app
     });

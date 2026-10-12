@@ -4,7 +4,7 @@ use std::time::Duration;
 
 use insurcraft_ui_egui::updates::{RELEASES_PAGE, Release};
 
-const LATEST: &str = "https://api.github.com/repos/__OWNER__/insurcraft/releases/latest";
+const LATEST: &str = "https://api.github.com/repos/Pourider/insurcraft/releases/latest";
 
 /// The latest release. The answer is untrusted: its size is capped, and only a page under
 /// [`RELEASES_PAGE`] is ever offered for download (anything else falls back to that list).
@@ -86,9 +86,9 @@ mod tests {
 
     #[test]
     fn answers_are_read_and_only_our_release_pages_are_offered() {
-        let r = parse(r#"{"tag_name":"v0.2.0","html_url":"https://github.com/__OWNER__/insurcraft/releases/tag/v0.2.0"}"#).unwrap();
-        assert_eq!(r, Release { version: "v0.2.0".into(), url: "https://github.com/__OWNER__/insurcraft/releases/tag/v0.2.0".into() });
-        for elsewhere in ["https://example.com/insurcraft.exe", "https://github.com/__OWNER__/insurcraft/releases.evil/x", "javascript:alert(1)"] {
+        let r = parse(r#"{"tag_name":"v0.2.0","html_url":"https://github.com/Pourider/insurcraft/releases/tag/v0.2.0"}"#).unwrap();
+        assert_eq!(r, Release { version: "v0.2.0".into(), url: "https://github.com/Pourider/insurcraft/releases/tag/v0.2.0".into() });
+        for elsewhere in ["https://example.com/insurcraft.exe", "https://github.com/Pourider/insurcraft/releases.evil/x", "javascript:alert(1)"] {
             let r = parse(&format!(r#"{{"tag_name":"v9.9.9","html_url":"{elsewhere}"}}"#)).unwrap();
             assert_eq!(r.url, RELEASES_PAGE, "{elsewhere}");
         }

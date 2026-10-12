@@ -41,7 +41,7 @@
 Necesitas [Rust](https://rustup.rs/) (en Windows, además, las "Build Tools" de Visual Studio con C++).
 
 ```sh
-git clone https://github.com/__OWNER__/insurcraft
+git clone https://github.com/Pourider/insurcraft
 cd insurcraft
 cargo run --release -p insurcraft -- documento.pdf     # app de escritorio
 cargo run --release -p insurcraft-cli -- tools          # lista de herramientas de la CLI

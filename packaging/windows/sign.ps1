@@ -55,7 +55,7 @@ if (-not $haveCert -and -not $haveAzure) {
 }
 
 $script:SignTool = Find-SignTool
-$common = @('sign', '/v', '/fd', 'SHA256', '/td', 'SHA256', '/d', 'InsurCraft', '/du', 'https://github.com/__OWNER__/insurcraft')
+$common = @('sign', '/v', '/fd', 'SHA256', '/td', 'SHA256', '/d', 'InsurCraft', '/du', 'https://github.com/Pourider/insurcraft')
 $tmp = Join-Path ([IO.Path]::GetTempPath()) "insurcraft-sign-$PID"
 New-Item -ItemType Directory -Force -Path $tmp | Out-Null
 

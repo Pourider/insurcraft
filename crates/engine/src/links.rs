@@ -10,11 +10,11 @@ use icu_properties::props::Script;
 /// The app's name in its URLs (`github.com/{OWNER}/{APP}`, `{OWNER}.github.io/{APP}`).
 pub const APP: &str = "insurcraft";
 /// The GitHub account that hosts InsurCraft.
-pub const OWNER: &str = "__OWNER__";
+pub const OWNER: &str = "Pourider";
 
-pub const GITHUB: &str = "https://github.com/__OWNER__/insurcraft";
-pub const SUPPORT: &str = "https://github.com/__OWNER__/insurcraft/issues";
-pub const APP_PAGE: &str = "https://__OWNER__.github.io/insurcraft";
+pub const GITHUB: &str = "https://github.com/Pourider/insurcraft";
+pub const SUPPORT: &str = "https://github.com/Pourider/insurcraft/issues";
+pub const APP_PAGE: &str = "https://pourider.github.io/insurcraft";
 /// The project InsurCraft is based on, credited in the About dialog and Help menu.
 pub const UPSTREAM: &str = "https://github.com/storytold/pdfcraft";
 

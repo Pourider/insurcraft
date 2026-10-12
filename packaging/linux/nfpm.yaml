@@ -14,7 +14,7 @@ section: graphics
 priority: optional
 maintainer: ${INSURCRAFT_MAINTAINER}
 vendor: Insur S.A.
-homepage: https://__OWNER__.github.io/insurcraft
+homepage: https://pourider.github.io/insurcraft
 license: MIT OR Apache-2.0
 description: |-
   Open-source, native PDF workbench: read, comment, fill and sign forms,
