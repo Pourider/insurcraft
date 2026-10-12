@@ -1,0 +1,78 @@
+# Builds InsurCraft for Windows (x64) on every push to main and publishes it as the latest
+# GitHub Release, so the "Descargar para Windows" button on the website always has a download:
+#   insurcraft-<version>-windows-x64.msi            installer (all users, needs admin)
+#   insurcraft-<version>-windows-x64-portable.zip   runs from any folder, no install
+#
+# The builds are NOT code-signed (no certificate), so Windows SmartScreen may warn on first run:
+# "More info" -> "Run anyway".
+# Run it by hand from Actions -> Windows -> Run workflow.
+name: Windows
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "apps/**"
+      - "crates/**"
+      - "assets/**"
+      - "packaging/windows/**"
+      - "Cargo.toml"
+      - "Cargo.lock"
+      - ".github/workflows/windows.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: windows-build
+  cancel-in-progress: true
+
+env:
+  CARGO_TERM_COLOR: always
+  CARGO_INCREMENTAL: 0
+
+jobs:
+  build:
+    name: Build Windows x64
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: x86_64-pc-windows-msvc
+      - uses: Swatinem/rust-cache@v2
+        with:
+          key: windows-x64
+      - name: Install WiX
+        shell: pwsh
+        run: dotnet tool install --global wix --version 5.0.2
+      - name: Build and package (unsigned)
+        shell: pwsh
+        run: ./packaging/windows/package.ps1 -Arch x64
+      - name: Read version
+        id: version
+        shell: bash
+        run: echo "version=$(grep -m1 '^version' Cargo.toml | cut -d'"' -f2)" >> "$GITHUB_OUTPUT"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: insurcraft-windows-x64
+          path: dist/release/*
+          if-no-files-found: error
+      - name: Publish as the latest release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: v${{ steps.version.outputs.version }}
+          name: InsurCraft v${{ steps.version.outputs.version }}
+          make_latest: "true"
+          prerelease: false
+          body: |
+            Build automático de InsurCraft para Windows (x64), sin firma de código.
+            - `.msi`: instalador para todos los usuarios (requiere administrador).
+            - `-portable.zip`: descomprime y ejecuta `insurcraft.exe`, sin instalar.
+
+            Si Windows SmartScreen avisa la primera vez: "Más información" → "Ejecutar de todas formas".
+          files: |
+            dist/release/*.msi
+            dist/release/*.zip
+          fail_on_unmatched_files: true
