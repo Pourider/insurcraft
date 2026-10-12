@@ -350,7 +350,8 @@ mod tests {
     fn urls_follow_the_insurcraft_scheme() {
         assert_eq!(super::GITHUB, format!("https://github.com/{}/{}", super::OWNER, super::APP));
         assert_eq!(super::SUPPORT, format!("{}/issues", super::GITHUB));
-        assert_eq!(super::APP_PAGE, format!("https://{}.github.io/{}", super::OWNER, super::APP));
+        // GitHub Pages hostnames are always lowercase.
+        assert_eq!(super::APP_PAGE, format!("https://{}.github.io/{}", super::OWNER.to_lowercase(), super::APP));
         for l in super::LINKS {
             assert!(l.url.starts_with("https://"), "{}", l.url);
             assert!(crate::commands::command(l.command).is_some(), "{} is a registered command", l.command);
